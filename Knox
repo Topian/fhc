@@ -10,6 +10,8 @@ using System.Management; // Add via Project > Add Reference if needed
 using System.Timers;
 using Timer = System.Windows.Forms.Timer;
 using System.Net.NetworkInformation;
+using SharpDX.XInput; // Include SharpDX.XInput to handle controller input
+using System.Collections.Generic;
 
 
 
@@ -70,7 +72,7 @@ namespace Knox
 
         private System.Windows.Forms.Timer networkCheckTimer;//Network connection checker
 
-
+        private ControllerInputHandler inputHandler; //Button Detection
 
         //================================================================MAIN========================================================================
         public ModMenu()
@@ -104,7 +106,10 @@ namespace Knox
 
         }
 
-
+        private int SafeAbs(int value)
+        {
+            return value == int.MinValue ? int.MaxValue : Math.Abs(value);
+        }
 
 
         //================================================Knox Remote Disable Feature==========================================================
@@ -358,6 +363,7 @@ namespace Knox
             rainbowTimer.Tick += RainbowTimer_Tick;
             rainbowTimer.Start();
 
+            inputHandler = new ControllerInputHandler(controlleractivitylabel); //button detection
 
         }
 
@@ -463,6 +469,8 @@ namespace Knox
         private ManagementEventWatcher deviceInsertedWatcher;
         private ManagementEventWatcher deviceRemovedWatcher;
 
+        
+
         private void DeviceInsertedWatcher_EventArrived(object sender, EventArrivedEventArgs e)
         {
             if (this.InvokeRequired)
@@ -508,6 +516,9 @@ namespace Knox
                 // Set index to 0 so "Select input device..." is shown
                 aiminputdevicedropdownbox.SelectedIndex = 0;
                 inputdevicelabel.Text = "No device selected";
+
+                // Initialize the controller input handler when a device is selected
+                inputHandler = new ControllerInputHandler(controlleractivitylabel);
             }
             catch (Exception ex)
             {
@@ -931,5 +942,79 @@ namespace Knox
                 MessageBox.Show("Auto Ping Enemies is Disabled");
             }
         }
+
+        private class ControllerInputHandler
+        {
+            private SharpDX.XInput.Controller controller;
+            private System.Windows.Forms.Timer pollTimer;
+            private Label controllerLabel;
+
+            public ControllerInputHandler(Label label)
+            {
+                controllerLabel = label;
+                controller = new SharpDX.XInput.Controller(SharpDX.XInput.UserIndex.One);
+
+                pollTimer = new System.Windows.Forms.Timer();
+                pollTimer.Interval = 50;
+                pollTimer.Tick += PollController_Tick;
+                pollTimer.Start();
+            }
+
+            private int SafeAbs(int value)
+            {
+                return value == int.MinValue ? int.MaxValue : Math.Abs(value);
+            }
+
+            private void PollController_Tick(object sender, EventArgs e)
+            {
+                if (!controller.IsConnected)
+                {
+                    controllerLabel.Invoke((MethodInvoker)(() =>
+                    {
+                        controllerLabel.Text = "Controller not connected";
+                    }));
+                    return;
+                }
+
+                var state = controller.GetState();
+                List<string> inputs = new List<string>();
+
+                // Buttons
+                foreach (SharpDX.XInput.GamepadButtonFlags flag in Enum.GetValues(typeof(SharpDX.XInput.GamepadButtonFlags)))
+                {
+                    if (flag != SharpDX.XInput.GamepadButtonFlags.None && (state.Gamepad.Buttons & flag) == flag)
+                    {
+                        inputs.Add(flag.ToString());
+                    }
+                }
+
+                // Analog sticks
+                if (SafeAbs(state.Gamepad.LeftThumbX - 32767) > 5000)
+                    inputs.Add($"Left Stick X: {state.Gamepad.LeftThumbX}");
+
+                if (SafeAbs(state.Gamepad.LeftThumbY - 32767) > 5000)
+                    inputs.Add($"Left Stick Y: {state.Gamepad.LeftThumbY}");
+
+                if (SafeAbs(state.Gamepad.RightThumbX - 32767) > 5000)
+                    inputs.Add($"Right Stick X: {state.Gamepad.RightThumbX}");
+
+                if (SafeAbs(state.Gamepad.RightThumbY - 32767) > 5000)
+                    inputs.Add($"Right Stick Y: {state.Gamepad.RightThumbY}");
+
+                // Triggers
+                if (state.Gamepad.LeftTrigger > 10)
+                    inputs.Add("Left Trigger: " + state.Gamepad.LeftTrigger);
+                if (state.Gamepad.RightTrigger > 10)
+                    inputs.Add("Right Trigger: " + state.Gamepad.RightTrigger);
+
+                controllerLabel.Invoke((MethodInvoker)(() =>
+                {
+                    controllerLabel.Text = inputs.Count > 0 ? string.Join(", ", inputs) : "No input detected";
+                }));
+            }
+        }
+
+
     }
 }
+
