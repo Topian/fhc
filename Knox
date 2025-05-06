@@ -1,0 +1,584 @@
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using System;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Diagnostics.Eventing.Reader;
+
+
+namespace Knox
+{
+    public partial class ModMenu : Form
+    {
+        //===================================================Privates=================================================================================
+        // WinAPI constants and delegates
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+        private static LowLevelKeyboardProc _proc;
+        private static IntPtr _hookID = IntPtr.Zero;
+
+        private const int WH_KEYBOARD_LL = 13;
+        private const int WM_KEYDOWN = 0x0100;
+
+
+        //Check for Knox being disabled
+        private System.Windows.Forms.Timer knoxCheckTimer;
+
+        //Check for users being logged out
+        private System.Windows.Forms.Timer loginValidationTimer;
+
+        //==============================================================DLL imports==================================================================
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HTCAPTION = 0x2;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+
+
+
+
+        //================================================================MAIN========================================================================
+        public ModMenu()
+        {
+            InitializeComponent();
+
+            //To be able to drag menu across screen from top bar
+            EnableDrag(menubar);
+            EnableDrag(knoxlogo);
+            EnableDrag(currentuserlabel);
+            EnableDrag(currentuser);
+
+            //Stuff for ESC toggle
+            _proc = HookCallback;
+            _hookID = SetHook(_proc);
+
+            // Start checking after the form loads for Knox being disabled
+            knoxCheckTimer = new System.Windows.Forms.Timer();
+            knoxCheckTimer.Interval = 1000;//check every second
+            knoxCheckTimer.Tick += async (s, e) => await CheckKnoxStatus();
+            knoxCheckTimer.Start();
+
+            //Checks for users being logged out every half-second
+            loginValidationTimer = new System.Windows.Forms.Timer();
+            loginValidationTimer.Interval = 500; //checks every half second
+            loginValidationTimer.Tick += async (s, e) => await ValidateKnoxLoginAsync();
+            loginValidationTimer.Start();
+
+        }
+
+
+
+
+        //================================================Knox Remote Disable Feature==========================================================
+        private async Task CheckKnoxStatus()
+        {
+            string url = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxDisable";
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string result = await client.GetStringAsync(url);
+                    if (result.Trim().ToLower() == "true")
+                    {
+                        knoxCheckTimer.Stop(); // stop further checks
+
+                        cheatscreen.Visible = false;
+
+
+                        await Task.Delay(1000); // wait 1 second
+
+                        MessageBox.Show("Knox has been temporarily disabled. Please check back later.");
+
+                        await Task.Delay(3000); // wait 3 seconds
+
+                        Application.Exit();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Optionally log or show the error
+                Console.WriteLine("Error checking Knox status: " + ex.Message);
+            }
+        }
+
+
+
+
+
+
+
+        //==================================================Knox User Logout Feature code===============================================================
+        private async Task ValidateKnoxLoginAsync()
+        {
+            if (!cheatscreen.Visible) return;
+
+            string userUrl = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxUser";
+            string passUrl = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxPass";
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string validUser = (await client.GetStringAsync(userUrl)).Trim();
+                    string validPass = (await client.GetStringAsync(passUrl)).Trim();
+
+                    bool usernameMatches = validUser == usernamebox.Text.Trim();
+                    bool passwordMatches = validPass == passwordbox.Text.Trim();
+
+                    if (!usernameMatches || !passwordMatches)
+                    {
+                        cheatscreen.Visible = false;
+                        loginscreen.Visible = true;
+
+                        MessageBox.Show("Your Knox Login is no longer valid. Please use a different login."); 
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error checking login: " + ex.Message);
+                // Optionally show a message or handle network issues gracefully
+            }
+        }
+
+
+
+
+
+
+
+
+
+        //==============================================================ESC Toggle Code=================================================================
+
+        private static IntPtr SetHook(LowLevelKeyboardProc proc)
+        {
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
+            }
+        }
+
+        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            {
+                int vkCode = Marshal.ReadInt32(lParam);
+                if ((Keys)vkCode == Keys.Escape)
+                {
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        if (this.WindowState == FormWindowState.Minimized)
+                        {
+                            this.WindowState = FormWindowState.Normal;
+                            this.Show();
+                            this.Activate();
+                        }
+                        else
+                        {
+                            this.WindowState = FormWindowState.Minimized;
+                        }
+                    });
+                }
+            }
+            return CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            UnhookWindowsHookEx(_hookID);
+            base.OnFormClosing(e);
+        }
+
+
+
+
+
+
+
+
+
+        //==========================================================PRIVATE VOIDS=====================================================================
+
+        private void ModMenu_Load(object sender, EventArgs e)
+        {
+            cheatscreen.Hide();
+            legitaimbotbutton.Enabled = false;
+            extremeaimbotbutton.Enabled = false;
+            headonlyaimbotbutton.Enabled = false;
+            bodyonlyaimbotbutton.Enabled = false;
+            closesttocrosshairaimbotbutton.Enabled = false;
+
+
+            playerboxopacitytrackbar.Minimum = 0;  // Set your desired range
+            playerboxopacitytrackbar.Maximum = 100;
+            playerboxopacitytrackbar.Value = 50;   // Start in the middle
+            opacitytextlabel.Text = playerboxopacitytrackbar.Value.ToString();
+
+            playerboxopacitytrackbar.Scroll += TrackBar1_Scroll;
+
+
+            passwordbox.KeyDown += passwordbox_KeyDown; //Press Enter while in password box to activate the Login button (because I'm Lazy)
+
+        }
+
+
+
+        //=========================================================Settings Bar All Code==================================================================
+
+
+        private void EnableDrag(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                }
+            };
+        }
+
+        private void exitbutton_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void restartbutton_Click(object sender, EventArgs e)
+        {
+            Application.Restart();
+        }
+
+        private void helpbutton_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Coming soon...");
+        }
+
+        //=============================================================================================================================================
+        //---------------------------------------------------------------ALL LOGIN SCREEN CODE---------------------------------------------------------
+        //=============================================================================================================================================
+
+
+        private void loginlogo_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void passwordbox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                // Optionally prevent ding sound
+                e.SuppressKeyPress = true;
+
+                // Call the login method
+                loginbutton_Click(loginbutton, EventArgs.Empty);
+            }
+        }
+
+        private async void loginbutton_Click(object sender, EventArgs e)
+        {
+            await CheckCredentialsAsync(usernamebox.Text.Trim(), passwordbox.Text.Trim());
+        }
+
+        private async Task CheckCredentialsAsync(string username, string password)
+        {
+            string userUrl = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxUser";
+            string passUrl = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxPass";
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string[] validUsers = (await client.GetStringAsync(userUrl)).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] validPasses = (await client.GetStringAsync(passUrl)).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    bool usernameValid = validUsers.Contains(username);
+                    bool passwordValid = validPasses.Contains(password);
+
+                    if (usernameValid && !passwordValid)
+                    {
+                        passwordbox.Text = "";
+                        MessageBox.Show("Invalid Password.");
+                        //Wrong password, right username
+                    }
+                    else if (!usernameValid && passwordValid)
+                    {
+                        usernamebox.Text = "";
+                        MessageBox.Show("Invalid Username.");
+                        //Wrong username, right password
+                    }
+                    else if (!usernameValid && !passwordValid)
+                    {
+                        passwordbox.Text = "";
+                        MessageBox.Show("Invalid Username and Password.");
+                        //Wrong username and password
+                    }
+                    else
+                    {
+                        currentuser.Text = usernamebox.Text;
+                        MessageBox.Show("Welcome back " +
+        usernamebox.Text + "!");
+                        loginscreen.Hide();
+                        cheatscreen.Show();
+                        // (Login Successful)
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error checking credentials:\n" + ex.Message);
+            }
+        }
+
+
+        //=============================================================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //===========================================================================================================================================
+        //---------------------------------------------------------------ALL CHEAT SCREEN CODE-------------------------------------------------------
+        //=============================================================================================================================================
+
+
+        private void aimbotonoffbutton_Click(object sender, EventArgs e)
+        {
+            if (this.aimbotonoffbutton.BackColor == Color.Green)
+            {
+                this.aimbotonoffbutton.BackColor = Color.Red;
+            }
+            else
+            {
+                //Aimbot ON code here
+                this.aimbotonoffbutton.BackColor = Color.Green;
+                legitaimbotbutton.Enabled = true;
+                extremeaimbotbutton.Enabled = true;
+                headonlyaimbotbutton.Enabled = true;
+                bodyonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+
+            if (this.aimbotonoffbutton.BackColor == Color.Red)
+            {
+                //Aimbot OFF code here
+                this.legitaimbotbutton.BackColor = Color.Gray;
+                this.extremeaimbotbutton.BackColor = Color.Gray;
+                this.headonlyaimbotbutton.BackColor = Color.Gray;
+                this.bodyonlyaimbotbutton.BackColor = Color.Gray;
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+                legitaimbotbutton.Enabled = false;
+                extremeaimbotbutton.Enabled = false;
+                headonlyaimbotbutton.Enabled = false;
+                bodyonlyaimbotbutton.Enabled = false;
+                closesttocrosshairaimbotbutton.Enabled = false;
+            }
+        }
+
+        private void legitaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.legitaimbotbutton.BackColor == Color.Green)
+            {
+                //Legit Aimbot OFF code here
+                this.legitaimbotbutton.BackColor = Color.Gray;
+                extremeaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Legit Aimbot ON code here
+                this.legitaimbotbutton.BackColor = Color.Green;
+                extremeaimbotbutton.Enabled = false;
+                this.extremeaimbotbutton.BackColor = Color.Gray;
+            }
+        }
+
+        private void extremeaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.extremeaimbotbutton.BackColor == Color.Green)
+            {
+                //Extreme Aimbot OFF code here
+                this.extremeaimbotbutton.BackColor = Color.Gray;
+                legitaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Extreme Aimbot ON code here
+                this.extremeaimbotbutton.BackColor = Color.Green;
+                legitaimbotbutton.Enabled = false;
+                this.legitaimbotbutton.BackColor = Color.Gray;
+                MessageBox.Show("Warning!" +
+                   " This option is extremely dangerous and can cause reports that will quickly lead to a ban!" +
+                    " Use at your own risk.");
+            }
+        }
+
+        private void headonlyaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.headonlyaimbotbutton.BackColor == Color.Green)
+            {
+                //Head Only Aimbot OFF code here
+                this.headonlyaimbotbutton.BackColor = Color.Gray;
+                bodyonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Head Only Aimbot ON code here
+                this.headonlyaimbotbutton.BackColor = Color.Green;
+                bodyonlyaimbotbutton.Enabled = false;
+                closesttocrosshairaimbotbutton.Enabled = false;
+                this.bodyonlyaimbotbutton.BackColor = Color.Gray;
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+            }
+        }
+
+        private void bodyonlyaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.bodyonlyaimbotbutton.BackColor == Color.Green)
+            {
+                //Body Only Aimbot OFF code here
+                this.bodyonlyaimbotbutton.BackColor = Color.Gray;
+                headonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Body Only Aimbot ON code here
+                this.bodyonlyaimbotbutton.BackColor = Color.Green;
+                headonlyaimbotbutton.Enabled = false;
+                this.headonlyaimbotbutton.BackColor = Color.Gray;
+                closesttocrosshairaimbotbutton.Enabled = false;
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+            }
+        }
+
+        private void closesttocrosshairaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.closesttocrosshairaimbotbutton.BackColor == Color.Green)
+            {
+                //Closest to Crosshair Aimbot OFF code here
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+                headonlyaimbotbutton.Enabled = true;
+                bodyonlyaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Closest to Crosshair Aimbot ON code here
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Green;
+                headonlyaimbotbutton.Enabled = false;
+                this.headonlyaimbotbutton.BackColor = Color.Gray;
+                bodyonlyaimbotbutton.Enabled = false;
+                this.bodyonlyaimbotbutton.BackColor = Color.Gray;
+            }
+        }
+
+        private void triggerbotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (triggerbotcheckbox.Checked)
+            {
+                //Triggerbot ON code here. (If you hold shootbutton, tiggerbot will continously press shootbutton as fast as possible until shootbutton input is released.)
+                MessageBox.Show("Triggerbot is Enabled!");
+            }
+            else
+            {
+                //Triggerbot OFF code here
+                MessageBox.Show("Triggerbot is Disabled!");
+            }
+        }
+
+        private void showcrosshaircheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showcrosshaircheckbox.Checked)
+            {
+                //Show Crosshair code here
+                MessageBox.Show("Crosshair is Enabled!");
+            }
+            else
+            {
+                //Hide Crosshair code here
+                MessageBox.Show("Crosshair is Disabled!");
+            }
+        }
+
+        private void autodropshotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autodropshotcheckbox.Checked)
+            {
+                autojumpshotcheckbox.Enabled = false;
+                //Auto Dropshot ON code here
+                MessageBox.Show("Auto Dropshot is Enabled!");
+            }
+            else
+            {
+                autojumpshotcheckbox.Enabled = true;
+                //Auto Dropshot OFF code here
+                MessageBox.Show("Auto Dropshot is Disabled!");
+            }
+        }
+
+        private void aiminputdevicedropdownbox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (aiminputdevicedropdownbox.Text == "Controller (Left Trigger is Aim Button)")
+            {
+                MessageBox.Show("Controller Aim Input Enabled!");
+            }
+
+            if (aiminputdevicedropdownbox.Text == "Mouse (Right Click is Aim Button)")
+            {
+                MessageBox.Show("Mouse Aim Input Enabled!");
+            }
+        }
+
+        private void TrackBar1_Scroll(object sender, EventArgs e)
+        {
+            opacitytextlabel.Text = playerboxopacitytrackbar.Value.ToString();
+        }
+
+        private void autojumpshotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autojumpshotcheckbox.Checked)
+            {
+                autodropshotcheckbox.Enabled = false;
+                //Auto Jumpshot ON code here
+                MessageBox.Show("Auto Jumpshot is Enabled");
+            }
+            else
+            {
+                autodropshotcheckbox.Enabled = true;
+                //Auto Jumpshot OFF code here
+                MessageBox.Show("Auto Jumpshot is Disabled");
+            }
+        }
+
+
+    }
+}
