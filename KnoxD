@@ -34,6 +34,11 @@ namespace Knox
             restartbutton = new Button();
             knoxlogo = new PictureBox();
             loginscreen = new Panel();
+            invaliduserandpasslabel = new Label();
+            invalidpasswordlabel = new Label();
+            invalidusernamelabel = new Label();
+            loginsuccesslabel = new Label();
+            loadingloginlabel = new Label();
             passwordlabel = new Label();
             usernamelabel = new Label();
             usernamebox = new TextBox();
@@ -42,6 +47,8 @@ namespace Knox
             passwordbox = new TextBox();
             loginlogo = new Label();
             cheatscreen = new Panel();
+            inputdevicelabel = new Label();
+            autopingenemiescheckbox = new CheckBox();
             aiminputdevicedropdownbox = new ComboBox();
             aiminputdevicelabel = new Label();
             autojumpshotcheckbox = new CheckBox();
@@ -66,6 +73,11 @@ namespace Knox
             currentuserlabel = new Label();
             currentuser = new Label();
             helpbutton = new Button();
+            startknoxbutton = new Button();
+            welcomescreen = new Label();
+            backbutton = new Button();
+            examplestartbutton = new Button();
+            updatechecklabel = new Label();
             ((System.ComponentModel.ISupportInitialize)menubar).BeginInit();
             ((System.ComponentModel.ISupportInitialize)knoxlogo).BeginInit();
             loginscreen.SuspendLayout();
@@ -100,7 +112,7 @@ namespace Knox
             restartbutton.BackColor = Color.FromArgb(192, 64, 0);
             restartbutton.FlatStyle = FlatStyle.Flat;
             restartbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            restartbutton.Location = new Point(507, 5);
+            restartbutton.Location = new Point(448, 5);
             restartbutton.Name = "restartbutton";
             restartbutton.Size = new Size(70, 37);
             restartbutton.TabIndex = 2;
@@ -122,6 +134,11 @@ namespace Knox
             // loginscreen
             // 
             loginscreen.BackColor = Color.DimGray;
+            loginscreen.Controls.Add(invaliduserandpasslabel);
+            loginscreen.Controls.Add(invalidpasswordlabel);
+            loginscreen.Controls.Add(invalidusernamelabel);
+            loginscreen.Controls.Add(loginsuccesslabel);
+            loginscreen.Controls.Add(loadingloginlabel);
             loginscreen.Controls.Add(passwordlabel);
             loginscreen.Controls.Add(usernamelabel);
             loginscreen.Controls.Add(usernamebox);
@@ -133,6 +150,56 @@ namespace Knox
             loginscreen.Name = "loginscreen";
             loginscreen.Size = new Size(643, 221);
             loginscreen.TabIndex = 4;
+            // 
+            // invaliduserandpasslabel
+            // 
+            invaliduserandpasslabel.AutoSize = true;
+            invaliduserandpasslabel.ForeColor = Color.Red;
+            invaliduserandpasslabel.Location = new Point(234, 192);
+            invaliduserandpasslabel.Name = "invaliduserandpasslabel";
+            invaliduserandpasslabel.Size = new Size(177, 15);
+            invaliduserandpasslabel.TabIndex = 13;
+            invaliduserandpasslabel.Text = "Invalid Username and Password.";
+            // 
+            // invalidpasswordlabel
+            // 
+            invalidpasswordlabel.AutoSize = true;
+            invalidpasswordlabel.ForeColor = Color.Red;
+            invalidpasswordlabel.Location = new Point(273, 192);
+            invalidpasswordlabel.Name = "invalidpasswordlabel";
+            invalidpasswordlabel.Size = new Size(98, 15);
+            invalidpasswordlabel.TabIndex = 11;
+            invalidpasswordlabel.Text = "Invalid Password.";
+            // 
+            // invalidusernamelabel
+            // 
+            invalidusernamelabel.AutoSize = true;
+            invalidusernamelabel.ForeColor = Color.Red;
+            invalidusernamelabel.Location = new Point(272, 192);
+            invalidusernamelabel.Name = "invalidusernamelabel";
+            invalidusernamelabel.Size = new Size(101, 15);
+            invalidusernamelabel.TabIndex = 12;
+            invalidusernamelabel.Text = "Invalid Username.";
+            // 
+            // loginsuccesslabel
+            // 
+            loginsuccesslabel.AutoSize = true;
+            loginsuccesslabel.ForeColor = Color.Lime;
+            loginsuccesslabel.Location = new Point(273, 192);
+            loginsuccesslabel.Name = "loginsuccesslabel";
+            loginsuccesslabel.Size = new Size(98, 15);
+            loginsuccesslabel.TabIndex = 14;
+            loginsuccesslabel.Text = "Login Successful!";
+            // 
+            // loadingloginlabel
+            // 
+            loadingloginlabel.AutoSize = true;
+            loadingloginlabel.ForeColor = Color.White;
+            loadingloginlabel.Location = new Point(259, 192);
+            loadingloginlabel.Name = "loadingloginlabel";
+            loadingloginlabel.Size = new Size(128, 15);
+            loadingloginlabel.TabIndex = 10;
+            loadingloginlabel.Text = "Authenticating Login...";
             // 
             // passwordlabel
             // 
@@ -208,6 +275,8 @@ namespace Knox
             // cheatscreen
             // 
             cheatscreen.BackColor = Color.FromArgb(128, 128, 255);
+            cheatscreen.Controls.Add(inputdevicelabel);
+            cheatscreen.Controls.Add(autopingenemiescheckbox);
             cheatscreen.Controls.Add(aiminputdevicedropdownbox);
             cheatscreen.Controls.Add(aiminputdevicelabel);
             cheatscreen.Controls.Add(autojumpshotcheckbox);
@@ -229,10 +298,35 @@ namespace Knox
             cheatscreen.Controls.Add(legitaimbotbutton);
             cheatscreen.Controls.Add(aimbotonoffbutton);
             cheatscreen.Controls.Add(aimbotsettingslabel);
-            cheatscreen.Location = new Point(-2, 285);
+            cheatscreen.Location = new Point(-2, 48);
             cheatscreen.Name = "cheatscreen";
             cheatscreen.Size = new Size(643, 221);
             cheatscreen.TabIndex = 5;
+            // 
+            // inputdevicelabel
+            // 
+            inputdevicelabel.AutoSize = true;
+            inputdevicelabel.BackColor = Color.Transparent;
+            inputdevicelabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            inputdevicelabel.ForeColor = Color.Red;
+            inputdevicelabel.ImageAlign = ContentAlignment.MiddleRight;
+            inputdevicelabel.Location = new Point(13, 202);
+            inputdevicelabel.Name = "inputdevicelabel";
+            inputdevicelabel.Size = new Size(104, 13);
+            inputdevicelabel.TabIndex = 43;
+            inputdevicelabel.Text = "No device selected";
+            inputdevicelabel.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // autopingenemiescheckbox
+            // 
+            autopingenemiescheckbox.AutoSize = true;
+            autopingenemiescheckbox.Location = new Point(508, 135);
+            autopingenemiescheckbox.Name = "autopingenemiescheckbox";
+            autopingenemiescheckbox.Size = new Size(126, 19);
+            autopingenemiescheckbox.TabIndex = 42;
+            autopingenemiescheckbox.Text = "Auto Ping Enemies";
+            autopingenemiescheckbox.UseVisualStyleBackColor = true;
+            autopingenemiescheckbox.CheckedChanged += autopingenemiescheckbox_CheckedChanged;
             // 
             // aiminputdevicedropdownbox
             // 
@@ -471,7 +565,7 @@ namespace Knox
             aimbotonoffbutton.Name = "aimbotonoffbutton";
             aimbotonoffbutton.Size = new Size(192, 29);
             aimbotonoffbutton.TabIndex = 16;
-            aimbotonoffbutton.Text = "On/Off (Alt + A)";
+            aimbotonoffbutton.Text = "On/Off";
             aimbotonoffbutton.UseVisualStyleBackColor = false;
             aimbotonoffbutton.Click += aimbotonoffbutton_Click;
             // 
@@ -490,6 +584,7 @@ namespace Knox
             // currentuserlabel
             // 
             currentuserlabel.AutoSize = true;
+            currentuserlabel.BackColor = Color.FromArgb(255, 128, 128);
             currentuserlabel.Font = new Font("Segoe UI", 11.25F, FontStyle.Underline, GraphicsUnit.Point, 0);
             currentuserlabel.ForeColor = Color.White;
             currentuserlabel.Location = new Point(111, 5);
@@ -501,8 +596,9 @@ namespace Knox
             // currentuser
             // 
             currentuser.AutoSize = true;
+            currentuser.BackColor = Color.FromArgb(255, 128, 128);
             currentuser.ForeColor = Color.White;
-            currentuser.Location = new Point(111, 29);
+            currentuser.Location = new Point(209, 8);
             currentuser.Name = "currentuser";
             currentuser.Size = new Size(29, 15);
             currentuser.TabIndex = 10;
@@ -513,7 +609,7 @@ namespace Knox
             helpbutton.BackColor = Color.Yellow;
             helpbutton.FlatStyle = FlatStyle.Flat;
             helpbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            helpbutton.Location = new Point(448, 5);
+            helpbutton.Location = new Point(524, 5);
             helpbutton.Name = "helpbutton";
             helpbutton.Size = new Size(53, 37);
             helpbutton.TabIndex = 11;
@@ -521,13 +617,77 @@ namespace Knox
             helpbutton.UseVisualStyleBackColor = false;
             helpbutton.Click += helpbutton_Click;
             // 
+            // startknoxbutton
+            // 
+            startknoxbutton.BackColor = Color.FromArgb(0, 192, 0);
+            startknoxbutton.FlatStyle = FlatStyle.Flat;
+            startknoxbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            startknoxbutton.Location = new Point(372, 5);
+            startknoxbutton.Name = "startknoxbutton";
+            startknoxbutton.Size = new Size(146, 37);
+            startknoxbutton.TabIndex = 12;
+            startknoxbutton.Text = "Start";
+            startknoxbutton.UseVisualStyleBackColor = false;
+            startknoxbutton.Click += startknoxbutton_Click;
+            // 
+            // welcomescreen
+            // 
+            welcomescreen.AutoSize = true;
+            welcomescreen.Font = new Font("Segoe UI", 18F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            welcomescreen.Location = new Point(27, 109);
+            welcomescreen.Name = "welcomescreen";
+            welcomescreen.Size = new Size(583, 64);
+            welcomescreen.TabIndex = 13;
+            welcomescreen.Text = "Welcome to Knox! Before you press \"Start\", make\r\n             sure you are connected to WiFi!";
+            // 
+            // backbutton
+            // 
+            backbutton.BackColor = Color.Cyan;
+            backbutton.FlatStyle = FlatStyle.Flat;
+            backbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            backbutton.Location = new Point(372, 5);
+            backbutton.Name = "backbutton";
+            backbutton.Size = new Size(70, 37);
+            backbutton.TabIndex = 14;
+            backbutton.Text = "Back";
+            backbutton.UseVisualStyleBackColor = false;
+            backbutton.Click += backbutton_Click;
+            // 
+            // examplestartbutton
+            // 
+            examplestartbutton.BackColor = Color.FromArgb(0, 192, 0);
+            examplestartbutton.Enabled = false;
+            examplestartbutton.FlatStyle = FlatStyle.Flat;
+            examplestartbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            examplestartbutton.Location = new Point(446, 107);
+            examplestartbutton.Name = "examplestartbutton";
+            examplestartbutton.Size = new Size(80, 37);
+            examplestartbutton.TabIndex = 15;
+            examplestartbutton.Text = "Start";
+            examplestartbutton.UseVisualStyleBackColor = false;
+            // 
+            // updatechecklabel
+            // 
+            updatechecklabel.AutoSize = true;
+            updatechecklabel.BackColor = Color.FromArgb(224, 224, 224);
+            updatechecklabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            updatechecklabel.ForeColor = Color.Black;
+            updatechecklabel.Location = new Point(109, 29);
+            updatechecklabel.Name = "updatechecklabel";
+            updatechecklabel.Size = new Size(123, 13);
+            updatechecklabel.TabIndex = 35;
+            updatechecklabel.Text = "No Updates Available.";
+            // 
             // ModMenu
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.FromArgb(255, 128, 128);
-            ClientSize = new Size(636, 601);
+            BackColor = Color.Green;
+            ClientSize = new Size(636, 285);
             ControlBox = false;
+            Controls.Add(updatechecklabel);
+            Controls.Add(startknoxbutton);
+            Controls.Add(backbutton);
             Controls.Add(helpbutton);
             Controls.Add(currentuser);
             Controls.Add(currentuserlabel);
@@ -537,6 +697,8 @@ namespace Knox
             Controls.Add(restartbutton);
             Controls.Add(exitbutton);
             Controls.Add(menubar);
+            Controls.Add(examplestartbutton);
+            Controls.Add(welcomescreen);
             FormBorderStyle = FormBorderStyle.FixedToolWindow;
             Name = "ModMenu";
             Load += ModMenu_Load;
@@ -590,5 +752,17 @@ namespace Knox
         private CheckBox autojumpshotcheckbox;
         private ComboBox aiminputdevicedropdownbox;
         private Label aiminputdevicelabel;
+        private Button startknoxbutton;
+        private Label welcomescreen;
+        private Button backbutton;
+        private CheckBox autopingenemiescheckbox;
+        private Button examplestartbutton;
+        private Label inputdevicelabel;
+        private Label updatechecklabel;
+        private Label loadingloginlabel;
+        private Label invalidpasswordlabel;
+        private Label invaliduserandpasslabel;
+        private Label invalidusernamelabel;
+        private Label loginsuccesslabel;
     }
 }
