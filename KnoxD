@@ -47,6 +47,7 @@ namespace Knox
             passwordbox = new TextBox();
             loginlogo = new Label();
             cheatscreen = new Panel();
+            controlleractivitylabel = new Label();
             inputdevicelabel = new Label();
             autopingenemiescheckbox = new CheckBox();
             aiminputdevicedropdownbox = new ComboBox();
@@ -275,6 +276,7 @@ namespace Knox
             // cheatscreen
             // 
             cheatscreen.BackColor = Color.FromArgb(128, 128, 255);
+            cheatscreen.Controls.Add(controlleractivitylabel);
             cheatscreen.Controls.Add(inputdevicelabel);
             cheatscreen.Controls.Add(autopingenemiescheckbox);
             cheatscreen.Controls.Add(aiminputdevicedropdownbox);
@@ -302,6 +304,17 @@ namespace Knox
             cheatscreen.Name = "cheatscreen";
             cheatscreen.Size = new Size(643, 221);
             cheatscreen.TabIndex = 5;
+            // 
+            // controlleractivitylabel
+            // 
+            controlleractivitylabel.AutoSize = true;
+            controlleractivitylabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            controlleractivitylabel.ForeColor = Color.White;
+            controlleractivitylabel.Location = new Point(273, 202);
+            controlleractivitylabel.Name = "controlleractivitylabel";
+            controlleractivitylabel.Size = new Size(101, 13);
+            controlleractivitylabel.TabIndex = 44;
+            controlleractivitylabel.Text = "Controller Acitvity";
             // 
             // inputdevicelabel
             // 
@@ -423,7 +436,7 @@ namespace Knox
             esctogglemenulabel.AutoSize = true;
             esctogglemenulabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
             esctogglemenulabel.ForeColor = Color.White;
-            esctogglemenulabel.Location = new Point(490, 202);
+            esctogglemenulabel.Location = new Point(482, 169);
             esctogglemenulabel.Name = "esctogglemenulabel";
             esctogglemenulabel.Size = new Size(150, 13);
             esctogglemenulabel.TabIndex = 34;
@@ -683,7 +696,7 @@ namespace Knox
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.Green;
-            ClientSize = new Size(636, 285);
+            ClientSize = new Size(636, 329);
             ControlBox = false;
             Controls.Add(updatechecklabel);
             Controls.Add(startknoxbutton);
@@ -701,6 +714,7 @@ namespace Knox
             Controls.Add(welcomescreen);
             FormBorderStyle = FormBorderStyle.FixedToolWindow;
             Name = "ModMenu";
+            StartPosition = FormStartPosition.CenterScreen;
             Load += ModMenu_Load;
             ((System.ComponentModel.ISupportInitialize)menubar).EndInit();
             ((System.ComponentModel.ISupportInitialize)knoxlogo).EndInit();
@@ -764,5 +778,6 @@ namespace Knox
         private Label invaliduserandpasslabel;
         private Label invalidusernamelabel;
         private Label loginsuccesslabel;
+        private Label controlleractivitylabel;
     }
 }
