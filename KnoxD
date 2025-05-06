@@ -1,0 +1,594 @@
+namespace Knox
+{
+    partial class ModMenu
+    {
+        /// <summary>
+        ///  Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        ///  Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        ///  Required method for Designer support - do not modify
+        ///  the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ModMenu));
+            menubar = new PictureBox();
+            exitbutton = new Button();
+            restartbutton = new Button();
+            knoxlogo = new PictureBox();
+            loginscreen = new Panel();
+            passwordlabel = new Label();
+            usernamelabel = new Label();
+            usernamebox = new TextBox();
+            loginbutton = new Button();
+            loginscreennote = new Label();
+            passwordbox = new TextBox();
+            loginlogo = new Label();
+            cheatscreen = new Panel();
+            aiminputdevicedropdownbox = new ComboBox();
+            aiminputdevicelabel = new Label();
+            autojumpshotcheckbox = new CheckBox();
+            autodropshotcheckbox = new CheckBox();
+            bodyonlyaimbotbutton = new Button();
+            headonlyaimbotbutton = new Button();
+            closesttocrosshairaimbotbutton = new Button();
+            esctogglemenulabel = new Label();
+            triggerbotcheckbox = new CheckBox();
+            extraslabel = new Label();
+            showcrosshaircheckbox = new CheckBox();
+            opacitytextlabel = new Label();
+            playerboxopacitylabel = new Label();
+            playerboxcolorlabel = new Label();
+            playerboxcolordropdownbox = new ComboBox();
+            playerboxopacitytrackbar = new TrackBar();
+            extremeaimbotbutton = new Button();
+            playerdetectionsettingslabel = new Label();
+            legitaimbotbutton = new Button();
+            aimbotonoffbutton = new Button();
+            aimbotsettingslabel = new Label();
+            currentuserlabel = new Label();
+            currentuser = new Label();
+            helpbutton = new Button();
+            ((System.ComponentModel.ISupportInitialize)menubar).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)knoxlogo).BeginInit();
+            loginscreen.SuspendLayout();
+            cheatscreen.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)playerboxopacitytrackbar).BeginInit();
+            SuspendLayout();
+            // 
+            // menubar
+            // 
+            menubar.BackColor = Color.FromArgb(224, 224, 224);
+            menubar.Location = new Point(-1, -1);
+            menubar.Name = "menubar";
+            menubar.Size = new Size(643, 50);
+            menubar.TabIndex = 0;
+            menubar.TabStop = false;
+            // 
+            // exitbutton
+            // 
+            exitbutton.BackColor = Color.FromArgb(192, 0, 0);
+            exitbutton.FlatStyle = FlatStyle.Flat;
+            exitbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            exitbutton.Location = new Point(583, 5);
+            exitbutton.Name = "exitbutton";
+            exitbutton.Size = new Size(47, 37);
+            exitbutton.TabIndex = 1;
+            exitbutton.Text = "Exit";
+            exitbutton.UseVisualStyleBackColor = false;
+            exitbutton.Click += exitbutton_Click;
+            // 
+            // restartbutton
+            // 
+            restartbutton.BackColor = Color.FromArgb(192, 64, 0);
+            restartbutton.FlatStyle = FlatStyle.Flat;
+            restartbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            restartbutton.Location = new Point(507, 5);
+            restartbutton.Name = "restartbutton";
+            restartbutton.Size = new Size(70, 37);
+            restartbutton.TabIndex = 2;
+            restartbutton.Text = "Restart";
+            restartbutton.UseVisualStyleBackColor = false;
+            restartbutton.Click += restartbutton_Click;
+            // 
+            // knoxlogo
+            // 
+            knoxlogo.BackColor = Color.FromArgb(224, 224, 224);
+            knoxlogo.Image = (Image)resources.GetObject("knoxlogo.Image");
+            knoxlogo.Location = new Point(-34, -1);
+            knoxlogo.Name = "knoxlogo";
+            knoxlogo.Size = new Size(169, 50);
+            knoxlogo.SizeMode = PictureBoxSizeMode.Zoom;
+            knoxlogo.TabIndex = 3;
+            knoxlogo.TabStop = false;
+            // 
+            // loginscreen
+            // 
+            loginscreen.BackColor = Color.DimGray;
+            loginscreen.Controls.Add(passwordlabel);
+            loginscreen.Controls.Add(usernamelabel);
+            loginscreen.Controls.Add(usernamebox);
+            loginscreen.Controls.Add(loginbutton);
+            loginscreen.Controls.Add(loginscreennote);
+            loginscreen.Controls.Add(passwordbox);
+            loginscreen.Controls.Add(loginlogo);
+            loginscreen.Location = new Point(-5, 48);
+            loginscreen.Name = "loginscreen";
+            loginscreen.Size = new Size(643, 221);
+            loginscreen.TabIndex = 4;
+            // 
+            // passwordlabel
+            // 
+            passwordlabel.AutoSize = true;
+            passwordlabel.ForeColor = Color.White;
+            passwordlabel.Location = new Point(202, 126);
+            passwordlabel.Name = "passwordlabel";
+            passwordlabel.Size = new Size(60, 15);
+            passwordlabel.TabIndex = 9;
+            passwordlabel.Text = "Password:";
+            // 
+            // usernamelabel
+            // 
+            usernamelabel.AutoSize = true;
+            usernamelabel.ForeColor = Color.White;
+            usernamelabel.Location = new Point(202, 96);
+            usernamelabel.Name = "usernamelabel";
+            usernamelabel.Size = new Size(63, 15);
+            usernamelabel.TabIndex = 8;
+            usernamelabel.Text = "Username:";
+            // 
+            // usernamebox
+            // 
+            usernamebox.Font = new Font("Times New Roman", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            usernamebox.Location = new Point(271, 90);
+            usernamebox.Name = "usernamebox";
+            usernamebox.Size = new Size(100, 21);
+            usernamebox.TabIndex = 7;
+            // 
+            // loginbutton
+            // 
+            loginbutton.BackColor = Color.Green;
+            loginbutton.FlatStyle = FlatStyle.Flat;
+            loginbutton.Font = new Font("Gill Sans MT Condensed", 18F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            loginbutton.Location = new Point(271, 146);
+            loginbutton.Name = "loginbutton";
+            loginbutton.Size = new Size(100, 43);
+            loginbutton.TabIndex = 6;
+            loginbutton.Text = "Login";
+            loginbutton.UseVisualStyleBackColor = false;
+            loginbutton.Click += loginbutton_Click;
+            // 
+            // loginscreennote
+            // 
+            loginscreennote.AutoSize = true;
+            loginscreennote.ForeColor = Color.White;
+            loginscreennote.Location = new Point(83, 68);
+            loginscreennote.Name = "loginscreennote";
+            loginscreennote.Size = new Size(475, 15);
+            loginscreennote.TabIndex = 2;
+            loginscreennote.Text = "NOTE: If you recently received a code or Knox was updated, please try again in 3 minutes.";
+            // 
+            // passwordbox
+            // 
+            passwordbox.Location = new Point(271, 118);
+            passwordbox.Name = "passwordbox";
+            passwordbox.Size = new Size(100, 23);
+            passwordbox.TabIndex = 1;
+            passwordbox.UseSystemPasswordChar = true;
+            // 
+            // loginlogo
+            // 
+            loginlogo.AutoSize = true;
+            loginlogo.Font = new Font("Times New Roman", 36F, FontStyle.Underline, GraphicsUnit.Point, 0);
+            loginlogo.ForeColor = Color.FromArgb(128, 128, 255);
+            loginlogo.Location = new Point(255, 13);
+            loginlogo.Name = "loginlogo";
+            loginlogo.Size = new Size(135, 55);
+            loginlogo.TabIndex = 0;
+            loginlogo.Text = "Login";
+            loginlogo.Click += loginlogo_Click;
+            // 
+            // cheatscreen
+            // 
+            cheatscreen.BackColor = Color.FromArgb(128, 128, 255);
+            cheatscreen.Controls.Add(aiminputdevicedropdownbox);
+            cheatscreen.Controls.Add(aiminputdevicelabel);
+            cheatscreen.Controls.Add(autojumpshotcheckbox);
+            cheatscreen.Controls.Add(autodropshotcheckbox);
+            cheatscreen.Controls.Add(bodyonlyaimbotbutton);
+            cheatscreen.Controls.Add(headonlyaimbotbutton);
+            cheatscreen.Controls.Add(closesttocrosshairaimbotbutton);
+            cheatscreen.Controls.Add(esctogglemenulabel);
+            cheatscreen.Controls.Add(triggerbotcheckbox);
+            cheatscreen.Controls.Add(extraslabel);
+            cheatscreen.Controls.Add(showcrosshaircheckbox);
+            cheatscreen.Controls.Add(opacitytextlabel);
+            cheatscreen.Controls.Add(playerboxopacitylabel);
+            cheatscreen.Controls.Add(playerboxcolorlabel);
+            cheatscreen.Controls.Add(playerboxcolordropdownbox);
+            cheatscreen.Controls.Add(playerboxopacitytrackbar);
+            cheatscreen.Controls.Add(extremeaimbotbutton);
+            cheatscreen.Controls.Add(playerdetectionsettingslabel);
+            cheatscreen.Controls.Add(legitaimbotbutton);
+            cheatscreen.Controls.Add(aimbotonoffbutton);
+            cheatscreen.Controls.Add(aimbotsettingslabel);
+            cheatscreen.Location = new Point(-2, 285);
+            cheatscreen.Name = "cheatscreen";
+            cheatscreen.Size = new Size(643, 221);
+            cheatscreen.TabIndex = 5;
+            // 
+            // aiminputdevicedropdownbox
+            // 
+            aiminputdevicedropdownbox.BackColor = Color.Silver;
+            aiminputdevicedropdownbox.DropDownStyle = ComboBoxStyle.DropDownList;
+            aiminputdevicedropdownbox.FlatStyle = FlatStyle.Popup;
+            aiminputdevicedropdownbox.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            aiminputdevicedropdownbox.FormattingEnabled = true;
+            aiminputdevicedropdownbox.Items.AddRange(new object[] { "Controller (Left Trigger is Aim Button)", "Mouse (Right Click is Aim Button)" });
+            aiminputdevicedropdownbox.Location = new Point(246, 165);
+            aiminputdevicedropdownbox.Name = "aiminputdevicedropdownbox";
+            aiminputdevicedropdownbox.Size = new Size(201, 21);
+            aiminputdevicedropdownbox.TabIndex = 41;
+            aiminputdevicedropdownbox.SelectedIndexChanged += aiminputdevicedropdownbox_SelectedIndexChanged;
+            // 
+            // aiminputdevicelabel
+            // 
+            aiminputdevicelabel.AutoSize = true;
+            aiminputdevicelabel.BackColor = Color.Transparent;
+            aiminputdevicelabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold | FontStyle.Underline, GraphicsUnit.Point, 0);
+            aiminputdevicelabel.ForeColor = Color.FromArgb(224, 224, 224);
+            aiminputdevicelabel.Location = new Point(273, 140);
+            aiminputdevicelabel.Name = "aiminputdevicelabel";
+            aiminputdevicelabel.Size = new Size(146, 21);
+            aiminputdevicelabel.TabIndex = 40;
+            aiminputdevicelabel.Text = "Aim Input Device:";
+            // 
+            // autojumpshotcheckbox
+            // 
+            autojumpshotcheckbox.AutoSize = true;
+            autojumpshotcheckbox.Location = new Point(508, 110);
+            autojumpshotcheckbox.Name = "autojumpshotcheckbox";
+            autojumpshotcheckbox.Size = new Size(107, 19);
+            autojumpshotcheckbox.TabIndex = 39;
+            autojumpshotcheckbox.Text = "Auto Jumpshot";
+            autojumpshotcheckbox.UseVisualStyleBackColor = true;
+            autojumpshotcheckbox.CheckedChanged += autojumpshotcheckbox_CheckedChanged;
+            // 
+            // autodropshotcheckbox
+            // 
+            autodropshotcheckbox.AutoSize = true;
+            autodropshotcheckbox.Location = new Point(508, 85);
+            autodropshotcheckbox.Name = "autodropshotcheckbox";
+            autodropshotcheckbox.Size = new Size(104, 19);
+            autodropshotcheckbox.TabIndex = 38;
+            autodropshotcheckbox.Text = "Auto Dropshot";
+            autodropshotcheckbox.UseVisualStyleBackColor = true;
+            autodropshotcheckbox.CheckedChanged += autodropshotcheckbox_CheckedChanged;
+            // 
+            // bodyonlyaimbotbutton
+            // 
+            bodyonlyaimbotbutton.BackColor = Color.Gray;
+            bodyonlyaimbotbutton.FlatStyle = FlatStyle.Flat;
+            bodyonlyaimbotbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            bodyonlyaimbotbutton.ForeColor = Color.White;
+            bodyonlyaimbotbutton.Location = new Point(113, 127);
+            bodyonlyaimbotbutton.Name = "bodyonlyaimbotbutton";
+            bodyonlyaimbotbutton.Size = new Size(93, 28);
+            bodyonlyaimbotbutton.TabIndex = 37;
+            bodyonlyaimbotbutton.Text = "Body ONLY";
+            bodyonlyaimbotbutton.UseVisualStyleBackColor = false;
+            bodyonlyaimbotbutton.Click += bodyonlyaimbotbutton_Click;
+            // 
+            // headonlyaimbotbutton
+            // 
+            headonlyaimbotbutton.BackColor = Color.Gray;
+            headonlyaimbotbutton.FlatStyle = FlatStyle.Flat;
+            headonlyaimbotbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            headonlyaimbotbutton.ForeColor = Color.White;
+            headonlyaimbotbutton.Location = new Point(13, 127);
+            headonlyaimbotbutton.Name = "headonlyaimbotbutton";
+            headonlyaimbotbutton.Size = new Size(93, 28);
+            headonlyaimbotbutton.TabIndex = 36;
+            headonlyaimbotbutton.Text = "Head ONLY";
+            headonlyaimbotbutton.UseVisualStyleBackColor = false;
+            headonlyaimbotbutton.Click += headonlyaimbotbutton_Click;
+            // 
+            // closesttocrosshairaimbotbutton
+            // 
+            closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+            closesttocrosshairaimbotbutton.FlatStyle = FlatStyle.Flat;
+            closesttocrosshairaimbotbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            closesttocrosshairaimbotbutton.ForeColor = Color.White;
+            closesttocrosshairaimbotbutton.Location = new Point(14, 161);
+            closesttocrosshairaimbotbutton.Name = "closesttocrosshairaimbotbutton";
+            closesttocrosshairaimbotbutton.Size = new Size(192, 28);
+            closesttocrosshairaimbotbutton.TabIndex = 35;
+            closesttocrosshairaimbotbutton.Text = "Closest to Crosshair";
+            closesttocrosshairaimbotbutton.UseVisualStyleBackColor = false;
+            closesttocrosshairaimbotbutton.Click += closesttocrosshairaimbotbutton_Click;
+            // 
+            // esctogglemenulabel
+            // 
+            esctogglemenulabel.AutoSize = true;
+            esctogglemenulabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            esctogglemenulabel.ForeColor = Color.White;
+            esctogglemenulabel.Location = new Point(490, 202);
+            esctogglemenulabel.Name = "esctogglemenulabel";
+            esctogglemenulabel.Size = new Size(150, 13);
+            esctogglemenulabel.TabIndex = 34;
+            esctogglemenulabel.Text = "*press ESC to toggle menu*";
+            // 
+            // triggerbotcheckbox
+            // 
+            triggerbotcheckbox.AutoSize = true;
+            triggerbotcheckbox.Location = new Point(508, 59);
+            triggerbotcheckbox.Name = "triggerbotcheckbox";
+            triggerbotcheckbox.Size = new Size(81, 19);
+            triggerbotcheckbox.TabIndex = 33;
+            triggerbotcheckbox.Text = "Triggerbot";
+            triggerbotcheckbox.UseVisualStyleBackColor = true;
+            triggerbotcheckbox.CheckedChanged += triggerbotcheckbox_CheckedChanged;
+            // 
+            // extraslabel
+            // 
+            extraslabel.AutoSize = true;
+            extraslabel.BackColor = Color.Transparent;
+            extraslabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold | FontStyle.Underline, GraphicsUnit.Point, 0);
+            extraslabel.ForeColor = Color.FromArgb(224, 224, 224);
+            extraslabel.Location = new Point(522, 0);
+            extraslabel.Name = "extraslabel";
+            extraslabel.Size = new Size(56, 21);
+            extraslabel.TabIndex = 32;
+            extraslabel.Text = "Extras";
+            // 
+            // showcrosshaircheckbox
+            // 
+            showcrosshaircheckbox.AutoSize = true;
+            showcrosshaircheckbox.Location = new Point(508, 34);
+            showcrosshaircheckbox.Name = "showcrosshaircheckbox";
+            showcrosshaircheckbox.Size = new Size(107, 19);
+            showcrosshaircheckbox.TabIndex = 31;
+            showcrosshaircheckbox.Text = "Show Crosshair";
+            showcrosshaircheckbox.UseVisualStyleBackColor = true;
+            showcrosshaircheckbox.CheckedChanged += showcrosshaircheckbox_CheckedChanged;
+            // 
+            // opacitytextlabel
+            // 
+            opacitytextlabel.AutoSize = true;
+            opacitytextlabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            opacitytextlabel.ForeColor = Color.White;
+            opacitytextlabel.Location = new Point(391, 85);
+            opacitytextlabel.Name = "opacitytextlabel";
+            opacitytextlabel.Size = new Size(13, 13);
+            opacitytextlabel.TabIndex = 30;
+            opacitytextlabel.Text = "0";
+            // 
+            // playerboxopacitylabel
+            // 
+            playerboxopacitylabel.AutoSize = true;
+            playerboxopacitylabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            playerboxopacitylabel.ForeColor = Color.White;
+            playerboxopacitylabel.Location = new Point(286, 85);
+            playerboxopacitylabel.Name = "playerboxopacitylabel";
+            playerboxopacitylabel.Size = new Size(107, 13);
+            playerboxopacitylabel.TabIndex = 29;
+            playerboxopacitylabel.Text = "Player Box Opacity:";
+            // 
+            // playerboxcolorlabel
+            // 
+            playerboxcolorlabel.AutoSize = true;
+            playerboxcolorlabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            playerboxcolorlabel.ForeColor = Color.White;
+            playerboxcolorlabel.Location = new Point(299, 27);
+            playerboxcolorlabel.Name = "playerboxcolorlabel";
+            playerboxcolorlabel.Size = new Size(96, 13);
+            playerboxcolorlabel.TabIndex = 28;
+            playerboxcolorlabel.Text = "Player Box Color:";
+            // 
+            // playerboxcolordropdownbox
+            // 
+            playerboxcolordropdownbox.BackColor = Color.Silver;
+            playerboxcolordropdownbox.DropDownStyle = ComboBoxStyle.DropDownList;
+            playerboxcolordropdownbox.FlatStyle = FlatStyle.Popup;
+            playerboxcolordropdownbox.FormattingEnabled = true;
+            playerboxcolordropdownbox.Items.AddRange(new object[] { "Red", "Yellow", "Blue", "Green", "Purple" });
+            playerboxcolordropdownbox.Location = new Point(246, 43);
+            playerboxcolordropdownbox.Name = "playerboxcolordropdownbox";
+            playerboxcolordropdownbox.Size = new Size(201, 23);
+            playerboxcolordropdownbox.TabIndex = 27;
+            // 
+            // playerboxopacitytrackbar
+            // 
+            playerboxopacitytrackbar.Location = new Point(235, 100);
+            playerboxopacitytrackbar.Name = "playerboxopacitytrackbar";
+            playerboxopacitytrackbar.Size = new Size(218, 45);
+            playerboxopacitytrackbar.TabIndex = 22;
+            // 
+            // extremeaimbotbutton
+            // 
+            extremeaimbotbutton.BackColor = Color.Gray;
+            extremeaimbotbutton.FlatStyle = FlatStyle.Flat;
+            extremeaimbotbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            extremeaimbotbutton.ForeColor = Color.White;
+            extremeaimbotbutton.Location = new Point(14, 93);
+            extremeaimbotbutton.Name = "extremeaimbotbutton";
+            extremeaimbotbutton.Size = new Size(192, 28);
+            extremeaimbotbutton.TabIndex = 21;
+            extremeaimbotbutton.Text = "Extreme";
+            extremeaimbotbutton.UseVisualStyleBackColor = false;
+            extremeaimbotbutton.Click += extremeaimbotbutton_Click;
+            // 
+            // playerdetectionsettingslabel
+            // 
+            playerdetectionsettingslabel.AutoSize = true;
+            playerdetectionsettingslabel.BackColor = Color.Transparent;
+            playerdetectionsettingslabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold | FontStyle.Underline, GraphicsUnit.Point, 0);
+            playerdetectionsettingslabel.ForeColor = Color.FromArgb(224, 224, 224);
+            playerdetectionsettingslabel.Location = new Point(251, 0);
+            playerdetectionsettingslabel.Name = "playerdetectionsettingslabel";
+            playerdetectionsettingslabel.Size = new Size(203, 21);
+            playerdetectionsettingslabel.TabIndex = 18;
+            playerdetectionsettingslabel.Text = "Player Detection Settings";
+            // 
+            // legitaimbotbutton
+            // 
+            legitaimbotbutton.BackColor = Color.Gray;
+            legitaimbotbutton.FlatStyle = FlatStyle.Flat;
+            legitaimbotbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            legitaimbotbutton.ForeColor = Color.White;
+            legitaimbotbutton.Location = new Point(14, 59);
+            legitaimbotbutton.Name = "legitaimbotbutton";
+            legitaimbotbutton.Size = new Size(192, 28);
+            legitaimbotbutton.TabIndex = 17;
+            legitaimbotbutton.Text = "Legit";
+            legitaimbotbutton.UseVisualStyleBackColor = false;
+            legitaimbotbutton.Click += legitaimbotbutton_Click;
+            // 
+            // aimbotonoffbutton
+            // 
+            aimbotonoffbutton.BackColor = Color.Gray;
+            aimbotonoffbutton.FlatStyle = FlatStyle.Flat;
+            aimbotonoffbutton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            aimbotonoffbutton.ForeColor = Color.White;
+            aimbotonoffbutton.Location = new Point(13, 24);
+            aimbotonoffbutton.Name = "aimbotonoffbutton";
+            aimbotonoffbutton.Size = new Size(192, 29);
+            aimbotonoffbutton.TabIndex = 16;
+            aimbotonoffbutton.Text = "On/Off (Alt + A)";
+            aimbotonoffbutton.UseVisualStyleBackColor = false;
+            aimbotonoffbutton.Click += aimbotonoffbutton_Click;
+            // 
+            // aimbotsettingslabel
+            // 
+            aimbotsettingslabel.AutoSize = true;
+            aimbotsettingslabel.BackColor = Color.Transparent;
+            aimbotsettingslabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold | FontStyle.Underline, GraphicsUnit.Point, 0);
+            aimbotsettingslabel.ForeColor = Color.FromArgb(224, 224, 224);
+            aimbotsettingslabel.Location = new Point(44, 0);
+            aimbotsettingslabel.Name = "aimbotsettingslabel";
+            aimbotsettingslabel.Size = new Size(133, 21);
+            aimbotsettingslabel.TabIndex = 15;
+            aimbotsettingslabel.Text = "Aimbot Settings";
+            // 
+            // currentuserlabel
+            // 
+            currentuserlabel.AutoSize = true;
+            currentuserlabel.Font = new Font("Segoe UI", 11.25F, FontStyle.Underline, GraphicsUnit.Point, 0);
+            currentuserlabel.ForeColor = Color.White;
+            currentuserlabel.Location = new Point(111, 5);
+            currentuserlabel.Name = "currentuserlabel";
+            currentuserlabel.Size = new Size(93, 20);
+            currentuserlabel.TabIndex = 10;
+            currentuserlabel.Text = "Current User:";
+            // 
+            // currentuser
+            // 
+            currentuser.AutoSize = true;
+            currentuser.ForeColor = Color.White;
+            currentuser.Location = new Point(111, 29);
+            currentuser.Name = "currentuser";
+            currentuser.Size = new Size(29, 15);
+            currentuser.TabIndex = 10;
+            currentuser.Text = "N/A";
+            // 
+            // helpbutton
+            // 
+            helpbutton.BackColor = Color.Yellow;
+            helpbutton.FlatStyle = FlatStyle.Flat;
+            helpbutton.Font = new Font("Gill Sans MT Ext Condensed Bold", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            helpbutton.Location = new Point(448, 5);
+            helpbutton.Name = "helpbutton";
+            helpbutton.Size = new Size(53, 37);
+            helpbutton.TabIndex = 11;
+            helpbutton.Text = "Help";
+            helpbutton.UseVisualStyleBackColor = false;
+            helpbutton.Click += helpbutton_Click;
+            // 
+            // ModMenu
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(255, 128, 128);
+            ClientSize = new Size(636, 601);
+            ControlBox = false;
+            Controls.Add(helpbutton);
+            Controls.Add(currentuser);
+            Controls.Add(currentuserlabel);
+            Controls.Add(cheatscreen);
+            Controls.Add(loginscreen);
+            Controls.Add(knoxlogo);
+            Controls.Add(restartbutton);
+            Controls.Add(exitbutton);
+            Controls.Add(menubar);
+            FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            Name = "ModMenu";
+            Load += ModMenu_Load;
+            ((System.ComponentModel.ISupportInitialize)menubar).EndInit();
+            ((System.ComponentModel.ISupportInitialize)knoxlogo).EndInit();
+            loginscreen.ResumeLayout(false);
+            loginscreen.PerformLayout();
+            cheatscreen.ResumeLayout(false);
+            cheatscreen.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)playerboxopacitytrackbar).EndInit();
+            ResumeLayout(false);
+            PerformLayout();
+        }
+
+        #endregion
+
+        private PictureBox menubar;
+        private Button exitbutton;
+        private Button restartbutton;
+        private PictureBox knoxlogo;
+        private Panel loginscreen;
+        private Panel cheatscreen;
+        private Label loginscreennote;
+        private TextBox passwordbox;
+        private Label loginlogo;
+        private Button loginbutton;
+        private TextBox usernamebox;
+        private Label passwordlabel;
+        private Label usernamelabel;
+        private Label currentuserlabel;
+        private Label currentuser;
+        private Label aimbotsettingslabel;
+        private Button aimbotonoffbutton;
+        private Label playerdetectionsettingslabel;
+        private Button legitaimbotbutton;
+        private Label playerboxcolorlabel;
+        private ComboBox playerboxcolordropdownbox;
+        private TrackBar playerboxopacitytrackbar;
+        private Button extremeaimbotbutton;
+        private Label extraslabel;
+        private CheckBox showcrosshaircheckbox;
+        private Label opacitytextlabel;
+        private Label playerboxopacitylabel;
+        private CheckBox triggerbotcheckbox;
+        private Button helpbutton;
+        private Label esctogglemenulabel;
+        private Button bodyonlyaimbotbutton;
+        private Button headonlyaimbotbutton;
+        private Button closesttocrosshairaimbotbutton;
+        private CheckBox autodropshotcheckbox;
+        private CheckBox autojumpshotcheckbox;
+        private ComboBox aiminputdevicedropdownbox;
+        private Label aiminputdevicelabel;
+    }
+}
