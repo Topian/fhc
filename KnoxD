@@ -310,7 +310,7 @@ namespace Knox
             controlleractivitylabel.AutoSize = true;
             controlleractivitylabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
             controlleractivitylabel.ForeColor = Color.White;
-            controlleractivitylabel.Location = new Point(273, 202);
+            controlleractivitylabel.Location = new Point(13, 204);
             controlleractivitylabel.Name = "controlleractivitylabel";
             controlleractivitylabel.Size = new Size(101, 13);
             controlleractivitylabel.TabIndex = 44;
@@ -323,7 +323,7 @@ namespace Knox
             inputdevicelabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
             inputdevicelabel.ForeColor = Color.Red;
             inputdevicelabel.ImageAlign = ContentAlignment.MiddleRight;
-            inputdevicelabel.Location = new Point(13, 202);
+            inputdevicelabel.Location = new Point(12, 190);
             inputdevicelabel.Name = "inputdevicelabel";
             inputdevicelabel.Size = new Size(104, 13);
             inputdevicelabel.TabIndex = 43;
