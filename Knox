@@ -138,25 +138,41 @@ namespace Knox
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    string validUser = (await client.GetStringAsync(userUrl)).Trim();
-                    string validPass = (await client.GetStringAsync(passUrl)).Trim();
+                    string[] validUsers = (await client.GetStringAsync(userUrl))
+                                          .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                          .Select(u => u.Trim().ToLower())
+                                          .ToArray();
 
-                    bool usernameMatches = validUser == usernamebox.Text.Trim();
-                    bool passwordMatches = validPass == passwordbox.Text.Trim();
+                    string[] validPasses = (await client.GetStringAsync(passUrl))
+                                           .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                           .Select(p => p.Trim())
+                                           .ToArray();
 
+                    string currentUser = usernamebox.Text.Trim().ToLower();
+                    string currentPass = passwordbox.Text.Trim();
+
+                    bool usernameMatches = validUsers.Contains(currentUser);
+                    bool passwordMatches = validPasses.Contains(currentPass);
+
+                    // Logout if either is invalid
                     if (!usernameMatches || !passwordMatches)
                     {
+                        loginValidationTimer.Stop();
                         cheatscreen.Visible = false;
-                        loginscreen.Visible = true;
 
-                        MessageBox.Show("Your Knox Login is no longer valid. Please use a different login."); 
+                        await Task.Delay(2000); //Wait 2 seconds
+
+                        loginscreen.Visible = true;
+                        passwordbox.Text = "";
+                        usernamebox.Text = "";
+
+                        MessageBox.Show("Your Knox Login is no longer valid. Please use a different login.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error checking login: " + ex.Message);
-                // Optionally show a message or handle network issues gracefully
+                Console.WriteLine("Login check failed: " + ex.Message);
             }
         }
 
@@ -339,7 +355,7 @@ namespace Knox
                         currentuser.Text = usernamebox.Text;
                         MessageBox.Show("Welcome back " +
         usernamebox.Text + "!");
-                        loginscreen.Hide();
+                      loginscreen.Hide();
                         cheatscreen.Show();
                         // (Login Successful)
                     }
