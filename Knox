@@ -363,7 +363,7 @@ namespace Knox
             rainbowTimer.Tick += RainbowTimer_Tick;
             rainbowTimer.Start();
 
-            inputHandler = new ControllerInputHandler(controlleractivitylabel); //button detection
+     //     inputHandler = new ControllerInputHandler(controlleractivitylabel); //button detection
 
         }
 
@@ -518,7 +518,7 @@ namespace Knox
                 inputdevicelabel.Text = "No device selected";
 
                 // Initialize the controller input handler when a device is selected
-                inputHandler = new ControllerInputHandler(controlleractivitylabel);
+                new ControllerInputHandler(controlleractivitylabel, aimbotonoffbutton); // Pass button here
             }
             catch (Exception ex)
             {
@@ -711,6 +711,7 @@ namespace Knox
             }
             else
             {
+               
                 aimbotonoffbutton.Text = "On";
                 aimbotonoffbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = true;
@@ -943,16 +944,21 @@ namespace Knox
             }
         }
 
-        private class ControllerInputHandler
+        public class ControllerInputHandler
         {
-            private SharpDX.XInput.Controller controller;
+            private Controller controller;
             private System.Windows.Forms.Timer pollTimer;
             private Label controllerLabel;
+            private Button aimbotonoffbutton; // Add a reference to the button
 
-            public ControllerInputHandler(Label label)
+            private bool leftTriggerWasPressed = false;
+
+            public ControllerInputHandler(Label label, Button button)  // Pass button reference here
             {
                 controllerLabel = label;
-                controller = new SharpDX.XInput.Controller(SharpDX.XInput.UserIndex.One);
+                aimbotonoffbutton = button;  // Assign button reference
+
+                controller = new Controller(UserIndex.One);
 
                 pollTimer = new System.Windows.Forms.Timer();
                 pollTimer.Interval = 50;
@@ -979,10 +985,10 @@ namespace Knox
                 var state = controller.GetState();
                 List<string> inputs = new List<string>();
 
-                // Buttons
-                foreach (SharpDX.XInput.GamepadButtonFlags flag in Enum.GetValues(typeof(SharpDX.XInput.GamepadButtonFlags)))
+                // Check buttons
+                foreach (GamepadButtonFlags flag in Enum.GetValues(typeof(GamepadButtonFlags)))
                 {
-                    if (flag != SharpDX.XInput.GamepadButtonFlags.None && (state.Gamepad.Buttons & flag) == flag)
+                    if (flag != GamepadButtonFlags.None && (state.Gamepad.Buttons & flag) == flag)
                     {
                         inputs.Add(flag.ToString());
                     }
@@ -1003,9 +1009,20 @@ namespace Knox
 
                 // Triggers
                 if (state.Gamepad.LeftTrigger > 10)
+                {
                     inputs.Add("Left Trigger: " + state.Gamepad.LeftTrigger);
-                if (state.Gamepad.RightTrigger > 10)
-                    inputs.Add("Right Trigger: " + state.Gamepad.RightTrigger);
+
+                    // Check if aimbot is "On" and trigger is pressed
+                    if (aimbotonoffbutton.Text == "On" && !leftTriggerWasPressed)
+                    {
+                        leftTriggerWasPressed = true;
+                        MessageBox.Show("Locking on player");
+                    }
+                }
+                else
+                {
+                    leftTriggerWasPressed = false;
+                }
 
                 controllerLabel.Invoke((MethodInvoker)(() =>
                 {
@@ -1013,6 +1030,8 @@ namespace Knox
                 }));
             }
         }
+
+
 
 
     }
