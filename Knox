@@ -6,12 +6,27 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Diagnostics.Eventing.Reader;
+using System.Management; // Add via Project > Add Reference if needed
+using System.Timers;
+using Timer = System.Windows.Forms.Timer;
+using System.Net.NetworkInformation;
+
 
 
 namespace Knox
 {
+
+
+
+
+
+
     public partial class ModMenu : Form
     {
+        private Timer updateTimer;
+        private System.Windows.Forms.Timer rainbowTimer;
+        private int hue = 0;
+
         //===================================================Privates=================================================================================
         // WinAPI constants and delegates
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -27,6 +42,9 @@ namespace Knox
 
         //Check for users being logged out
         private System.Windows.Forms.Timer loginValidationTimer;
+
+
+
 
         //==============================================================DLL imports==================================================================
         [DllImport("user32.dll")]
@@ -50,7 +68,7 @@ namespace Knox
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
-
+        private System.Windows.Forms.Timer networkCheckTimer;//Network connection checker
 
 
 
@@ -80,6 +98,9 @@ namespace Knox
             loginValidationTimer.Interval = 500; //checks every half second
             loginValidationTimer.Tick += async (s, e) => await ValidateKnoxLoginAsync();
             loginValidationTimer.Start();
+
+            //Alt+A Aimbot toggle code
+          
 
         }
 
@@ -214,18 +235,27 @@ namespace Knox
                         {
                             this.WindowState = FormWindowState.Minimized;
                         }
+
+                        
                     });
                 }
             }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
+
+            //Alt Aimbot toggle code
+
+            
+
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+          
             UnhookWindowsHookEx(_hookID);
             base.OnFormClosing(e);
         }
 
+        //============================================================================================================================================
 
 
 
@@ -233,12 +263,23 @@ namespace Knox
 
 
 
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        //==========================================================MODMENU_LOAD=============================================================================
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
 
-        //==========================================================PRIVATE VOIDS=====================================================================
-
-        private void ModMenu_Load(object sender, EventArgs e)
+        private async void ModMenu_Load(object sender, EventArgs e)
         {
+            loginsuccesslabel.Hide();
+            loadingloginlabel.Hide();
+            invalidpasswordlabel.Hide();
+            invalidusernamelabel.Hide();
+            invaliduserandpasslabel.Hide();
+            startknoxbutton.Hide();
+            restartbutton.Hide();
+            backbutton.Hide();
             cheatscreen.Hide();
+            loginscreen.Hide();
             legitaimbotbutton.Enabled = false;
             extremeaimbotbutton.Enabled = false;
             headonlyaimbotbutton.Enabled = false;
@@ -256,7 +297,246 @@ namespace Knox
 
             passwordbox.KeyDown += passwordbox_KeyDown; //Press Enter while in password box to activate the Login button (because I'm Lazy)
 
+
+
+            //Aim Input Detection
+            DetectInputDevices(); // Initial detection
+
+            // Watch for device insertion
+            deviceInsertedWatcher = new ManagementEventWatcher(
+                new WqlEventQuery("SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_PnPEntity'")
+            );
+            deviceInsertedWatcher.EventArrived += DeviceInsertedWatcher_EventArrived;
+            deviceInsertedWatcher.Start();
+
+            // Watch for device removal
+            deviceRemovedWatcher = new ManagementEventWatcher(
+                new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_PnPEntity'")
+            );
+            deviceRemovedWatcher.EventArrived += DeviceRemovedWatcher_EventArrived;
+            deviceRemovedWatcher.Start();
+
+           
+            
+            //Check for Updates
+            updateTimer = new Timer();
+            updateTimer.Interval = 500; //Every split second
+            updateTimer.Tick += async (s, args) => await CheckForUpdate();
+            updateTimer.Start();
+
+            //wait 2 seconds
+            await Task.Delay(2000);
+            if(updatechecklabel.ForeColor == Color.Blue)
+            {
+                //Essentially do Nothing because the buttons are already hidden.
+            }
+            else
+            {
+                startknoxbutton.Show();
+                restartbutton.Show();
+                backbutton.Show();
+            }
+
+            //Detect Network connection
+            // One-time check at startup
+            if (!NetworkInterface.GetIsNetworkAvailable())
+            {
+                MessageBox.Show("No Network Connection Detected. You can only use Knox on an Internet Connection. Please connect to Internet and try again.");
+                Application.Exit();
+                return;
+            }
+
+            // Set up recurring check
+            networkCheckTimer = new System.Windows.Forms.Timer();
+            networkCheckTimer.Interval = 10; //Checks realy fast lol
+            networkCheckTimer.Tick += NetworkCheckTimer_Tick;
+            networkCheckTimer.Start();
+
+            //Rainbow background flashing
+            rainbowTimer = new System.Windows.Forms.Timer();
+            rainbowTimer.Interval = 50; // Speed of color change (lower = faster)
+            rainbowTimer.Tick += RainbowTimer_Tick;
+            rainbowTimer.Start();
+
+
         }
+
+
+        //==========================================================================================================================================
+
+
+
+
+
+
+
+
+
+        //===============================================Rainbow Background Code====================================================================
+        private void RainbowTimer_Tick(object sender, EventArgs e)
+        {
+            this.BackColor = ColorFromHSV(hue, 1.0, 1.0); // Full saturation & brightness
+            hue = (hue + 5) % 360; // Rotate hue (wraps at 360)
+        }
+
+        public static Color ColorFromHSV(double hue, double saturation, double value)
+        {
+            int hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
+            double f = hue / 60 - Math.Floor(hue / 60);
+
+            value = value * 255;
+            int v = Convert.ToInt32(value);
+            int p = Convert.ToInt32(value * (1 - saturation));
+            int q = Convert.ToInt32(value * (1 - f * saturation));
+            int t = Convert.ToInt32(value * (1 - (1 - f) * saturation));
+
+            return hi switch
+            {
+                0 => Color.FromArgb(255, v, t, p),
+                1 => Color.FromArgb(255, q, v, p),
+                2 => Color.FromArgb(255, p, v, t),
+                3 => Color.FromArgb(255, p, q, v),
+                4 => Color.FromArgb(255, t, p, v),
+                _ => Color.FromArgb(255, v, p, q),
+            };
+        }
+
+        //===========================================================================================================================================
+
+
+
+
+
+
+
+        //================================================Network Connection Checker================================================================
+        private void NetworkCheckTimer_Tick(object sender, EventArgs e)
+        {
+            if (!NetworkInterface.GetIsNetworkAvailable())
+            {
+                networkCheckTimer.Stop(); // Stop checking once offline
+                MessageBox.Show("Network connection lost. Knox will now close.");
+                Application.Exit();
+            }
+        }
+        //=========================================================================================================================================
+
+
+        //========================================================Update Check=====================================================================
+        private async Task CheckForUpdate()
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string url = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxUpdates";
+                    string result = await client.GetStringAsync(url);
+                    if (result.Trim().ToLower() != "false")
+                    {
+                        updateTimer.Stop(); // Optional: stop checking after notifying
+                        startknoxbutton.Hide();
+                        examplestartbutton.Hide();
+                        backbutton.Hide();
+                        restartbutton.Hide();
+
+                        welcomescreen.Text = "              Please Download the New Version\r\n                      of Knox in the Discord!\r\n";
+                        updatechecklabel.Text = "UPDATE AVAILABLE!";
+                        updatechecklabel.ForeColor = Color.Blue;
+                        MessageBox.Show("Knox Has an Update Available! Please Install the newest Version.");
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Optional: silently fail or log the error
+                Console.WriteLine("Update check failed: " + ex.Message);
+            }
+        }
+        //==========================================================================================================================================
+
+
+
+
+
+        //==================================================================Aim Input Detection=====================================================
+        private ManagementEventWatcher deviceInsertedWatcher;
+        private ManagementEventWatcher deviceRemovedWatcher;
+
+        private void DeviceInsertedWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(() => DetectInputDevices()));
+            }
+            else
+            {
+                DetectInputDevices();
+            }
+        }
+
+        private void DeviceRemovedWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(() => DetectInputDevices()));
+            }
+            else
+            {
+                DetectInputDevices();
+            }
+        }
+
+        private void DetectInputDevices()
+        {
+            aiminputdevicedropdownbox.Items.Clear();
+            aiminputdevicedropdownbox.Items.Add("Select input device...");
+
+            try
+            {
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity");
+                foreach (ManagementObject device in searcher.Get())
+                {
+                    string name = device["Name"]?.ToString() ?? "";
+                    if (name.ToLower().Contains("xbox") || name.ToLower().Contains("controller") ||
+                        name.ToLower().Contains("mouse") || name.ToLower().Contains("mouse") ||
+    name.ToLower().Contains("dualshock") || name.ToLower().Contains("dualsense") ||
+    name.ToLower().Contains("playstation") || name.ToLower().Contains("sony"))
+                    {
+                        aiminputdevicedropdownbox.Items.Add("Input: " + name);
+                    }
+
+
+                }
+
+                // Set index to 0 so "Select input device..." is shown
+                aiminputdevicedropdownbox.SelectedIndex = 0;
+                inputdevicelabel.Text = "No device selected";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error detecting devices: " + ex.Message);
+            }
+        }
+
+        private void ModMenu_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (deviceInsertedWatcher != null)
+                deviceInsertedWatcher.Stop();
+
+            if (deviceRemovedWatcher != null)
+                deviceRemovedWatcher.Stop();
+        }
+
+        
+
+
+        //================================================================================================================================================
+
+
+
+
+
 
 
 
@@ -287,7 +567,7 @@ namespace Knox
 
         private void helpbutton_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Coming soon...");
+            MessageBox.Show("*If you bought Knox, your username is your Discord username! (not display name)*\r\n*Updated Usernames and Passwords take at least 3 minutes to update in the system!*\r\n*If there is an update, please delete this version and install the new one!*\r\n*You CANNOT use Knox WITHOUT a Network Connection!*");
         }
 
         //=============================================================================================================================================
@@ -314,7 +594,14 @@ namespace Knox
 
         private async void loginbutton_Click(object sender, EventArgs e)
         {
+            invalidpasswordlabel.Hide();
+            invalidusernamelabel.Hide();
+            invaliduserandpasslabel.Hide();
+            loadingloginlabel.Show();
+            await Task.Delay(2000); // Wait 2 seconds
             await CheckCredentialsAsync(usernamebox.Text.Trim(), passwordbox.Text.Trim());
+            loadingloginlabel.Hide();
+           
         }
 
         private async Task CheckCredentialsAsync(string username, string password)
@@ -335,28 +622,49 @@ namespace Knox
                     if (usernameValid && !passwordValid)
                     {
                         passwordbox.Text = "";
+                        loadingloginlabel.Hide();
+                        invalidpasswordlabel.Show();
+                        invalidusernamelabel.Hide();
+                        invaliduserandpasslabel.Hide();
                         MessageBox.Show("Invalid Password.");
                         //Wrong password, right username
                     }
                     else if (!usernameValid && passwordValid)
                     {
                         usernamebox.Text = "";
+                        loadingloginlabel.Hide();
+                        invalidpasswordlabel.Hide();
+                        invalidusernamelabel.Show();
+                        invaliduserandpasslabel.Hide();
                         MessageBox.Show("Invalid Username.");
                         //Wrong username, right password
                     }
                     else if (!usernameValid && !passwordValid)
                     {
                         passwordbox.Text = "";
+                        loadingloginlabel.Hide();
+                        invalidpasswordlabel.Hide();
+                        invalidusernamelabel.Hide();
+                        invaliduserandpasslabel.Show();
                         MessageBox.Show("Invalid Username and Password.");
                         //Wrong username and password
                     }
                     else
                     {
+                        backbutton.Hide();
+                        loadingloginlabel.Hide();
+                        invalidpasswordlabel.Hide();
+                        invalidusernamelabel.Hide();
+                        invaliduserandpasslabel.Hide();
+                        loginsuccesslabel.Show();
                         currentuser.Text = usernamebox.Text;
+                        loadingloginlabel.Text = "Login Successful!";
                         MessageBox.Show("Welcome back " +
         usernamebox.Text + "!");
-                      loginscreen.Hide();
-                        cheatscreen.Show();
+                        loginscreen.Hide();
+                        cheatscreen.Focus();
+                        cheatscreen.Visible = true;
+                       
                         // (Login Successful)
                     }
                 }
@@ -389,14 +697,15 @@ namespace Knox
 
         private void aimbotonoffbutton_Click(object sender, EventArgs e)
         {
-            if (this.aimbotonoffbutton.BackColor == Color.Green)
+            if (aimbotonoffbutton.BackColor == Color.Green)
             {
-                this.aimbotonoffbutton.BackColor = Color.Red;
+                aimbotonoffbutton.BackColor = Color.Red;
+                aimbotonoffbutton.Text = "Off";
             }
             else
             {
-                //Aimbot ON code here
-                this.aimbotonoffbutton.BackColor = Color.Green;
+                aimbotonoffbutton.Text = "On";
+                aimbotonoffbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = true;
                 extremeaimbotbutton.Enabled = true;
                 headonlyaimbotbutton.Enabled = true;
@@ -404,14 +713,13 @@ namespace Knox
                 closesttocrosshairaimbotbutton.Enabled = true;
             }
 
-            if (this.aimbotonoffbutton.BackColor == Color.Red)
+            if (aimbotonoffbutton.BackColor == Color.Red)
             {
-                //Aimbot OFF code here
-                this.legitaimbotbutton.BackColor = Color.Gray;
-                this.extremeaimbotbutton.BackColor = Color.Gray;
-                this.headonlyaimbotbutton.BackColor = Color.Gray;
-                this.bodyonlyaimbotbutton.BackColor = Color.Gray;
-                this.closesttocrosshairaimbotbutton.BackColor = Color.Gray;
+                legitaimbotbutton.BackColor = Color.Gray;
+                extremeaimbotbutton.BackColor = Color.Gray;
+                headonlyaimbotbutton.BackColor = Color.Gray;
+                bodyonlyaimbotbutton.BackColor = Color.Gray;
+                closesttocrosshairaimbotbutton.BackColor = Color.Gray;
                 legitaimbotbutton.Enabled = false;
                 extremeaimbotbutton.Enabled = false;
                 headonlyaimbotbutton.Enabled = false;
@@ -561,22 +869,29 @@ namespace Knox
             }
         }
 
+
+
         private void aiminputdevicedropdownbox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (aiminputdevicedropdownbox.Text == "Controller (Left Trigger is Aim Button)")
+            string selected = aiminputdevicedropdownbox.SelectedItem?.ToString();
+
+            if (string.IsNullOrEmpty(selected) || selected == "Select input device...")
             {
-                MessageBox.Show("Controller Aim Input Enabled!");
+                inputdevicelabel.Text = "No input device detected";
+                inputdevicelabel.ForeColor = Color.Red;
+            }
+            else
+            {
+                inputdevicelabel.Text = selected;
+                inputdevicelabel.ForeColor = Color.LimeGreen;
             }
 
-            if (aiminputdevicedropdownbox.Text == "Mouse (Right Click is Aim Button)")
-            {
-                MessageBox.Show("Mouse Aim Input Enabled!");
-            }
         }
 
         private void TrackBar1_Scroll(object sender, EventArgs e)
         {
             opacitytextlabel.Text = playerboxopacitytrackbar.Value.ToString();
+            inputdevicelabel.Text = aiminputdevicedropdownbox.SelectedItem.ToString();
         }
 
         private void autojumpshotcheckbox_CheckedChanged(object sender, EventArgs e)
@@ -595,6 +910,30 @@ namespace Knox
             }
         }
 
+        private void startknoxbutton_Click(object sender, EventArgs e)
+        {
+            loginscreen.Show();
+            startknoxbutton.Hide();
+        }
 
+        private void backbutton_Click(object sender, EventArgs e)
+        {
+            loginscreen.Hide();
+            startknoxbutton.Show();
+        }
+
+        private void autopingenemiescheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autopingenemiescheckbox.Checked)
+            {
+                //Auto Ping Enemies ON code here
+                MessageBox.Show("Auto Ping Enemies is Enabled");
+            }
+            else
+            {
+                //Auto Ping Enemies OFF code here
+                MessageBox.Show("Auto Ping Enemies is Disabled");
+            }
+        }
     }
 }
