@@ -100,7 +100,7 @@ namespace Knox
             loginValidationTimer.Start();
 
             //Alt+A Aimbot toggle code
-          
+
 
         }
 
@@ -236,7 +236,7 @@ namespace Knox
                             this.WindowState = FormWindowState.Minimized;
                         }
 
-                        
+
                     });
                 }
             }
@@ -244,13 +244,13 @@ namespace Knox
 
             //Alt Aimbot toggle code
 
-            
+
 
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-          
+
             UnhookWindowsHookEx(_hookID);
             base.OnFormClosing(e);
         }
@@ -266,7 +266,7 @@ namespace Knox
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         //==========================================================MODMENU_LOAD=============================================================================
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    
+
 
         private async void ModMenu_Load(object sender, EventArgs e)
         {
@@ -316,8 +316,8 @@ namespace Knox
             deviceRemovedWatcher.EventArrived += DeviceRemovedWatcher_EventArrived;
             deviceRemovedWatcher.Start();
 
-           
-            
+
+
             //Check for Updates
             updateTimer = new Timer();
             updateTimer.Interval = 500; //Every split second
@@ -326,7 +326,7 @@ namespace Knox
 
             //wait 2 seconds
             await Task.Delay(2000);
-            if(updatechecklabel.ForeColor == Color.Blue)
+            if (updatechecklabel.ForeColor == Color.Blue)
             {
                 //Essentially do Nothing because the buttons are already hidden.
             }
@@ -498,15 +498,11 @@ namespace Knox
                 foreach (ManagementObject device in searcher.Get())
                 {
                     string name = device["Name"]?.ToString() ?? "";
-                    if (name.ToLower().Contains("xbox") || name.ToLower().Contains("controller") ||
-                        name.ToLower().Contains("mouse") || name.ToLower().Contains("mouse") ||
-    name.ToLower().Contains("dualshock") || name.ToLower().Contains("dualsense") ||
-    name.ToLower().Contains("playstation") || name.ToLower().Contains("sony"))
+                    if (name.ToLower().Contains("xbox") || name.ToLower().Contains("playstation") ||
+                        name.ToLower().Contains("dualshock") || name.ToLower().Contains("dualsense"))
                     {
                         aiminputdevicedropdownbox.Items.Add("Input: " + name);
                     }
-
-
                 }
 
                 // Set index to 0 so "Select input device..." is shown
@@ -528,7 +524,7 @@ namespace Knox
                 deviceRemovedWatcher.Stop();
         }
 
-        
+
 
 
         //================================================================================================================================================
@@ -601,7 +597,7 @@ namespace Knox
             await Task.Delay(2000); // Wait 2 seconds
             await CheckCredentialsAsync(usernamebox.Text.Trim(), passwordbox.Text.Trim());
             loadingloginlabel.Hide();
-           
+
         }
 
         private async Task CheckCredentialsAsync(string username, string password)
@@ -664,7 +660,7 @@ namespace Knox
                         loginscreen.Hide();
                         cheatscreen.Focus();
                         cheatscreen.Visible = true;
-                       
+
                         // (Login Successful)
                     }
                 }
