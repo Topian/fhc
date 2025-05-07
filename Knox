@@ -28,6 +28,11 @@ namespace Knox
         private Timer updateTimer;
         private System.Windows.Forms.Timer rainbowTimer;
         private int hue = 0;
+        private Timer autoPingTimer;
+        private bool leftTriggerHeld = false;
+        private bool messageShown = false;
+        private bool isAutoPingActive = false;
+        private System.Windows.Forms.Timer onlineVersionTimer;
 
         //===================================================Privates=================================================================================
         // WinAPI constants and delegates
@@ -84,6 +89,7 @@ namespace Knox
             EnableDrag(knoxlogo);
             EnableDrag(currentuserlabel);
             EnableDrag(currentuser);
+            EnableDrag(updatechecklabel);
 
             //Stuff for ESC toggle
             _proc = HookCallback;
@@ -226,7 +232,7 @@ namespace Knox
             if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
             {
                 int vkCode = Marshal.ReadInt32(lParam);
-                if ((Keys)vkCode == Keys.Escape)
+                if ((Keys)vkCode == Keys.RShiftKey)
                 {
                     this.Invoke((MethodInvoker)delegate
                     {
@@ -363,7 +369,19 @@ namespace Knox
             rainbowTimer.Tick += RainbowTimer_Tick;
             rainbowTimer.Start();
 
-     //     inputHandler = new ControllerInputHandler(controlleractivitylabel); //button detection
+            //Auto ping
+            autoPingTimer = new Timer();
+            autoPingTimer.Interval = 50; // 20x per second
+            autoPingTimer.Tick += AutoPingTimer_Tick;
+            autoPingTimer.Start();
+
+            //Online Label
+            onlineVersionTimer = new System.Windows.Forms.Timer();
+            onlineVersionTimer.Interval = 100; //Really fast
+            onlineVersionTimer.Tick += async (s, ev) => await UpdateOnlineVersionAsync();
+            onlineVersionTimer.Start();
+
+            await UpdateOnlineVersionAsync(); // initial load
 
         }
 
@@ -415,6 +433,32 @@ namespace Knox
 
 
 
+
+
+        //==================================================Online Version Updater=====================================================================
+        private async Task UpdateOnlineVersionAsync()
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string url = "https://raw.githubusercontent.com/Topian/fhc/refs/heads/main/KnoxOnlineVersion";
+                    string result = await client.GetStringAsync(url);
+                    onlineversion.Invoke((MethodInvoker)(() => onlineversion.Text = result));
+                }
+            }
+            catch (Exception ex)
+            {
+                onlineversion.Invoke((MethodInvoker)(() => onlineversion.Text = "Error fetching version"));
+            }
+        }
+
+        //============================================================================================================================================
+
+
+
+
+
         //================================================Network Connection Checker================================================================
         private void NetworkCheckTimer_Tick(object sender, EventArgs e)
         {
@@ -461,6 +505,38 @@ namespace Knox
         }
         //==========================================================================================================================================
 
+
+
+
+        //==========================================================================================================================================
+        //------------------------------------------------------Extras Code-------------------------------------------------------------------------
+        //==========================================================================================================================================
+
+        private void AutoPingTimer_Tick(object sender, EventArgs e)
+        {
+            if (autopingenemiescheckbox.Checked && aimbotonoffbutton.Text == "On" && leftTriggerHeld)
+            {
+                // Simulate DPad Up (you can replace with actual input simulation if needed)
+                SendKeys.SendWait("{UP}");
+
+                // Optional: only show this once per trigger press
+                if (!messageShown)
+                {
+                    messageShown = true;
+            //      MessageBox.Show("Locking on player");
+                }
+            }
+            else
+            {
+                messageShown = false;
+            }
+        }
+
+
+
+
+
+        //===========================================================================================================================================
 
 
 
@@ -518,7 +594,8 @@ namespace Knox
                 inputdevicelabel.Text = "No device selected";
 
                 // Initialize the controller input handler when a device is selected
-                new ControllerInputHandler(controlleractivitylabel, aimbotonoffbutton); // Pass button here
+                new ControllerInputHandler(controlleractivitylabel, aimbotonoffbutton, autopingenemiescheckbox);
+
             }
             catch (Exception ex)
             {
@@ -952,11 +1029,13 @@ namespace Knox
             private Button aimbotonoffbutton; // Add a reference to the button
 
             private bool leftTriggerWasPressed = false;
+            private CheckBox autopingenemiescheckbox;
 
-            public ControllerInputHandler(Label label, Button button)  // Pass button reference here
+            public ControllerInputHandler(Label label, Button button)  // Pass button reference 
             {
                 controllerLabel = label;
-                aimbotonoffbutton = button;  // Assign button reference
+                aimbotonoffbutton = button;
+               
 
                 controller = new Controller(UserIndex.One);
 
@@ -964,6 +1043,11 @@ namespace Knox
                 pollTimer.Interval = 50;
                 pollTimer.Tick += PollController_Tick;
                 pollTimer.Start();
+            }
+
+            public ControllerInputHandler(Label label, Button button, CheckBox autopingenemiescheckbox) : this(label, button)
+            {
+                this.autopingenemiescheckbox = autopingenemiescheckbox;
             }
 
             private int SafeAbs(int value)
@@ -1007,16 +1091,14 @@ namespace Knox
                 if (SafeAbs(state.Gamepad.RightThumbY - 32767) > 5000)
                     inputs.Add($"Right Stick Y: {state.Gamepad.RightThumbY}");
 
-                // Triggers
-                if (state.Gamepad.LeftTrigger > 10)
+                // --- Triggerbot / Aimbot ---
+                if (aimbotonoffbutton.Text == "On" && state.Gamepad.LeftTrigger > 10)
                 {
-                    inputs.Add("Left Trigger: " + state.Gamepad.LeftTrigger);
-
-                    // Check if aimbot is "On" and trigger is pressed
-                    if (aimbotonoffbutton.Text == "On" && !leftTriggerWasPressed)
+                    if (!leftTriggerWasPressed)
                     {
                         leftTriggerWasPressed = true;
-                        MessageBox.Show("Locking on player");
+            //        MessageBox.Show("Locking on "); // Triggerbot lock-on
+                       
                     }
                 }
                 else
@@ -1024,11 +1106,19 @@ namespace Knox
                     leftTriggerWasPressed = false;
                 }
 
+                // --- Auto-ping enemies ---
+                if (autopingenemiescheckbox.Checked && state.Gamepad.LeftTrigger > 10)
+                {
+                    SendKeys.SendWait("{UP}"); // Spam D-Pad Up
+                }
+
                 controllerLabel.Invoke((MethodInvoker)(() =>
                 {
                     controllerLabel.Text = inputs.Count > 0 ? string.Join(", ", inputs) : "No input detected";
                 }));
             }
+
+
         }
 
 
