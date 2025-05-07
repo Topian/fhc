@@ -57,7 +57,6 @@ namespace Knox
             bodyonlyaimbotbutton = new Button();
             headonlyaimbotbutton = new Button();
             closesttocrosshairaimbotbutton = new Button();
-            esctogglemenulabel = new Label();
             triggerbotcheckbox = new CheckBox();
             extraslabel = new Label();
             showcrosshaircheckbox = new CheckBox();
@@ -71,6 +70,7 @@ namespace Knox
             legitaimbotbutton = new Button();
             aimbotonoffbutton = new Button();
             aimbotsettingslabel = new Label();
+            esctogglemenulabel = new Label();
             currentuserlabel = new Label();
             currentuser = new Label();
             helpbutton = new Button();
@@ -79,6 +79,8 @@ namespace Knox
             backbutton = new Button();
             examplestartbutton = new Button();
             updatechecklabel = new Label();
+            onlineversion = new Label();
+            label1 = new Label();
             ((System.ComponentModel.ISupportInitialize)menubar).BeginInit();
             ((System.ComponentModel.ISupportInitialize)knoxlogo).BeginInit();
             loginscreen.SuspendLayout();
@@ -286,7 +288,6 @@ namespace Knox
             cheatscreen.Controls.Add(bodyonlyaimbotbutton);
             cheatscreen.Controls.Add(headonlyaimbotbutton);
             cheatscreen.Controls.Add(closesttocrosshairaimbotbutton);
-            cheatscreen.Controls.Add(esctogglemenulabel);
             cheatscreen.Controls.Add(triggerbotcheckbox);
             cheatscreen.Controls.Add(extraslabel);
             cheatscreen.Controls.Add(showcrosshaircheckbox);
@@ -430,17 +431,6 @@ namespace Knox
             closesttocrosshairaimbotbutton.Text = "Closest to Crosshair";
             closesttocrosshairaimbotbutton.UseVisualStyleBackColor = false;
             closesttocrosshairaimbotbutton.Click += closesttocrosshairaimbotbutton_Click;
-            // 
-            // esctogglemenulabel
-            // 
-            esctogglemenulabel.AutoSize = true;
-            esctogglemenulabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            esctogglemenulabel.ForeColor = Color.White;
-            esctogglemenulabel.Location = new Point(482, 169);
-            esctogglemenulabel.Name = "esctogglemenulabel";
-            esctogglemenulabel.Size = new Size(150, 13);
-            esctogglemenulabel.TabIndex = 34;
-            esctogglemenulabel.Text = "*press ESC to toggle menu*";
             // 
             // triggerbotcheckbox
             // 
@@ -594,6 +584,17 @@ namespace Knox
             aimbotsettingslabel.TabIndex = 15;
             aimbotsettingslabel.Text = "Aimbot Settings";
             // 
+            // esctogglemenulabel
+            // 
+            esctogglemenulabel.AutoSize = true;
+            esctogglemenulabel.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            esctogglemenulabel.ForeColor = Color.White;
+            esctogglemenulabel.Location = new Point(437, 271);
+            esctogglemenulabel.Name = "esctogglemenulabel";
+            esctogglemenulabel.Size = new Size(195, 13);
+            esctogglemenulabel.TabIndex = 34;
+            esctogglemenulabel.Text = "*press RIGHT SHIFT to toggle menu*";
+            // 
             // currentuserlabel
             // 
             currentuserlabel.AutoSize = true;
@@ -691,13 +692,39 @@ namespace Knox
             updatechecklabel.TabIndex = 35;
             updatechecklabel.Text = "No Updates Available.";
             // 
+            // onlineversion
+            // 
+            onlineversion.AutoSize = true;
+            onlineversion.BackColor = Color.Transparent;
+            onlineversion.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            onlineversion.ForeColor = Color.White;
+            onlineversion.Location = new Point(17, 271);
+            onlineversion.Name = "onlineversion";
+            onlineversion.Size = new Size(110, 13);
+            onlineversion.TabIndex = 45;
+            onlineversion.Text = "Online Version: b0.3";
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.BackColor = Color.Transparent;
+            label1.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.ForeColor = Color.Lime;
+            label1.Location = new Point(1, 271);
+            label1.Name = "label1";
+            label1.Size = new Size(20, 13);
+            label1.TabIndex = 46;
+            label1.Text = "\U0001f7e2";
+            // 
             // ModMenu
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.Green;
-            ClientSize = new Size(636, 329);
+            ClientSize = new Size(636, 286);
             ControlBox = false;
+            Controls.Add(label1);
+            Controls.Add(onlineversion);
             Controls.Add(updatechecklabel);
             Controls.Add(startknoxbutton);
             Controls.Add(backbutton);
@@ -707,6 +734,7 @@ namespace Knox
             Controls.Add(cheatscreen);
             Controls.Add(loginscreen);
             Controls.Add(knoxlogo);
+            Controls.Add(esctogglemenulabel);
             Controls.Add(restartbutton);
             Controls.Add(exitbutton);
             Controls.Add(menubar);
@@ -714,7 +742,9 @@ namespace Knox
             Controls.Add(welcomescreen);
             FormBorderStyle = FormBorderStyle.FixedToolWindow;
             Name = "ModMenu";
+            Opacity = 0.8D;
             StartPosition = FormStartPosition.CenterScreen;
+            TopMost = true;
             Load += ModMenu_Load;
             ((System.ComponentModel.ISupportInitialize)menubar).EndInit();
             ((System.ComponentModel.ISupportInitialize)knoxlogo).EndInit();
@@ -779,5 +809,7 @@ namespace Knox
         private Label invalidusernamelabel;
         private Label loginsuccesslabel;
         private Label controlleractivitylabel;
+        private Label onlineversion;
+        private Label label1;
     }
 }
