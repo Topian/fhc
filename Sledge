@@ -1,0 +1,492 @@
+using System;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Diagnostics.Eventing.Reader;
+//using System.Management; // Add via Project > Add Reference if needed
+using System.Timers;
+using Timer = System.Windows.Forms.Timer;
+using System.Net.NetworkInformation;
+//using SharpDX.XInput; // Include SharpDX.XInput to handle controller input
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Windows.Forms;
+using System.Diagnostics;
+using SledgeOverlay;
+
+
+
+
+
+namespace Sledge
+{
+    public partial class Form1 : Form
+    {
+
+        Process pythonOverlayProcess;
+        private OverlayForm overlay;
+
+        //Rainbow Background----------------------------
+        private System.Windows.Forms.Timer rainbowTimer;
+        private int hue = 0;
+
+        //Drag Logo--------------------------------------------------------------------------
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+        private static LowLevelKeyboardProc _proc;
+        private static IntPtr _hookID = IntPtr.Zero;
+
+        private const int WH_KEYBOARD_LL = 13;
+        private const int WM_KEYDOWN = 0x0100;
+
+        //DLLs--------------------------------------------------------------------------------------------------------------
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HTCAPTION = 0x2;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            //To be able to drag menu across screen from top bar
+            EnableDrag(topmenubar);
+            EnableDrag(bottommenubar);
+            EnableDrag(sledgelogo);
+            EnableDrag(togglelabel1);
+            EnableDrag(togglelabel2);
+        }
+
+        private void EnableDrag(Control control)
+        {
+            control.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ReleaseCapture();
+                    SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                }
+            };
+        }
+
+
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+            //Rainbow background flashing----------------------------------------
+            rainbowTimer = new System.Windows.Forms.Timer();
+            rainbowTimer.Interval = 50; // Speed of color change (lower = faster)
+            rainbowTimer.Tick += RainbowTimer_Tick;
+            rainbowTimer.Start();
+
+            //Disable aimbot default-----------------
+            legitaimbotbutton.Enabled = false;
+            extremeaimbotbutton.Enabled = false;
+            headonlyaimbotbutton.Enabled = false;
+            bodyonlyaimbotbutton.Enabled = false;
+            closesttocrosshairaimbotbutton.Enabled = false;
+
+            //Right Shift Flashing White and Black
+            timer1.Interval = 1000; // 1 second
+            timer1.Tick += timer1_Tick;
+            timer1.Start();
+
+            //Screen Detect Overlay--------------------
+            overlay = new OverlayForm();
+            overlay.Show();
+
+        }
+
+        //Rainbow Background--------------------------------------------------------------
+        private void RainbowTimer_Tick(object sender, EventArgs e)
+        {
+            this.BackColor = ColorFromHSV(hue, 1.0, 1.0); // Full saturation & brightness
+            hue = (hue + 5) % 360; // Rotate hue (wraps at 360)
+        }
+
+        public static Color ColorFromHSV(double hue, double saturation, double value)
+        {
+            int hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
+            double f = hue / 60 - Math.Floor(hue / 60);
+
+            value = value * 255;
+            int v = Convert.ToInt32(value);
+            int p = Convert.ToInt32(value * (1 - saturation));
+            int q = Convert.ToInt32(value * (1 - f * saturation));
+            int t = Convert.ToInt32(value * (1 - (1 - f) * saturation));
+
+            return hi switch
+            {
+                0 => Color.FromArgb(255, v, t, p),
+                1 => Color.FromArgb(255, q, v, p),
+                2 => Color.FromArgb(255, p, v, t),
+                3 => Color.FromArgb(255, p, q, v),
+                4 => Color.FromArgb(255, t, p, v),
+                _ => Color.FromArgb(255, v, p, q),
+            };
+        }
+
+        //Right Shift Flashing Black and White-----------------
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (togglelabel2.ForeColor == Color.White)
+                togglelabel2.ForeColor = Color.Black;
+            else
+                togglelabel2.ForeColor = Color.White;
+        }
+
+
+        //Sledge Top Menu Bar----------------------------------------------------------------------------------------------------
+        private void button7_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            Application.Restart();
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("*If you bought Sledge, your username is your Discord username! (not display name)*\r\n*Updated Usernames and Passwords take at least 3 minutes to update in the system!*\r\n*If there is an update, please delete this version and install the new one!*\r\n*You CANNOT use Sledge WITHOUT a Network Connection!*");
+        }
+
+
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        //==========                       Sledge ALL 'modmenutab' Settings                           ==========
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        //Sledge 'Aimbot Settings'----------------------------------------------
+        private void aimbotonoffbutton_Click(object sender, EventArgs e)
+        {
+            if (aimbotonoffbutton.BackColor == Color.Green)
+            {
+                aimbotonoffbutton.BackColor = Color.Red;
+                aimbotonoffbutton.Text = "Off";
+                //All Aimbot Off Code Here
+            }
+            else
+            {
+                aimbotonoffbutton.Text = "On";
+                aimbotonoffbutton.BackColor = Color.Green;
+                legitaimbotbutton.Enabled = true;
+                extremeaimbotbutton.Enabled = true;
+                headonlyaimbotbutton.Enabled = true;
+                bodyonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+
+            if (aimbotonoffbutton.BackColor == Color.Red)
+            {
+                //All Aimbot Off Code Here
+                legitaimbotbutton.BackColor = Color.White;
+                extremeaimbotbutton.BackColor = Color.White;
+                headonlyaimbotbutton.BackColor = Color.White;
+                bodyonlyaimbotbutton.BackColor = Color.White;
+                legitaimbotbutton.Enabled = false;
+                extremeaimbotbutton.Enabled = false;
+                headonlyaimbotbutton.Enabled = false;
+                bodyonlyaimbotbutton.Enabled = false;
+                closesttocrosshairaimbotbutton.Enabled = false;
+            }
+        }
+
+        private void legitaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.legitaimbotbutton.BackColor == Color.Green)
+            {
+                //Legit Aimbot OFF code here
+                this.legitaimbotbutton.BackColor = Color.White;
+                extremeaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Legit Aimbot ON code here
+                this.legitaimbotbutton.BackColor = Color.Green;
+                extremeaimbotbutton.Enabled = false;
+                this.extremeaimbotbutton.BackColor = Color.White;
+            }
+        }
+
+        private void extremeaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.extremeaimbotbutton.BackColor == Color.Green)
+            {
+                //Extreme Aimbot OFF code here
+                this.extremeaimbotbutton.BackColor = Color.White;
+                legitaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Extreme Aimbot ON code here
+                this.extremeaimbotbutton.BackColor = Color.Green;
+                legitaimbotbutton.Enabled = false;
+                this.legitaimbotbutton.BackColor = Color.White;
+                MessageBox.Show("This option is extremely dangerous and can cause reports that will quickly lead to a ban!" +
+                    " Use at your own risk.", "Sledge Alert!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void headonlyaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.headonlyaimbotbutton.BackColor == Color.Green)
+            {
+                //Head Only Aimbot OFF code here
+                this.headonlyaimbotbutton.BackColor = Color.White;
+                bodyonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Head Only Aimbot ON code here
+                this.headonlyaimbotbutton.BackColor = Color.Green;
+                bodyonlyaimbotbutton.Enabled = false;
+                closesttocrosshairaimbotbutton.Enabled = false;
+                this.bodyonlyaimbotbutton.BackColor = Color.White;
+                this.closesttocrosshairaimbotbutton.BackColor = Color.White;
+            }
+        }
+
+        private void bodyonlyaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.bodyonlyaimbotbutton.BackColor == Color.Green)
+            {
+                //Body Only Aimbot OFF code here
+                this.bodyonlyaimbotbutton.BackColor = Color.White;
+                headonlyaimbotbutton.Enabled = true;
+                closesttocrosshairaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Body Only Aimbot ON code here
+                this.bodyonlyaimbotbutton.BackColor = Color.Green;
+                headonlyaimbotbutton.Enabled = false;
+                this.headonlyaimbotbutton.BackColor = Color.White;
+                closesttocrosshairaimbotbutton.Enabled = false;
+                this.closesttocrosshairaimbotbutton.BackColor = Color.White;
+            }
+        }
+
+        private void closesttocrosshairaimbotbutton_Click(object sender, EventArgs e)
+        {
+            if (this.closesttocrosshairaimbotbutton.BackColor == Color.Green)
+            {
+                //Closest to Crosshair Aimbot OFF code here
+                this.closesttocrosshairaimbotbutton.BackColor = Color.White;
+                headonlyaimbotbutton.Enabled = true;
+                bodyonlyaimbotbutton.Enabled = true;
+            }
+            else
+            {
+                //Closest to Crosshair Aimbot ON code here
+                this.closesttocrosshairaimbotbutton.BackColor = Color.Green;
+                headonlyaimbotbutton.Enabled = false;
+                this.headonlyaimbotbutton.BackColor = Color.White;
+                bodyonlyaimbotbutton.Enabled = false;
+                this.bodyonlyaimbotbutton.BackColor = Color.White;
+            }
+        }
+
+
+        //Sledge 'Extras'------------------------------------------------------------------
+        private void showcrosshaircheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showcrosshaircheckbox.Checked)
+            {
+                //Crosshair ON code here
+
+            }
+            else
+            {
+                //Crosshair OFF code here
+
+            }
+        }
+
+        private void autodropshotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autodropshotcheckbox.Checked)
+            {
+                autojumpshotcheckbox.Enabled = false;
+                //Auto Dropshot ON code here
+
+            }
+            else
+            {
+                autojumpshotcheckbox.Enabled = true;
+                //Auto Dropshot OFF code here
+
+            }
+        }
+
+        private void autojumpshotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autojumpshotcheckbox.Checked)
+            {
+                autodropshotcheckbox.Enabled = false;
+                //Auto Jumpshot ON code here
+
+            }
+            else
+            {
+                autodropshotcheckbox.Enabled = true;
+                //Auto Jumpshot OFF code here
+
+            }
+        }
+
+        private void triggerbotcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (triggerbotcheckbox.Checked)
+            {
+                //Triggerbot ON code here.
+                //(If you hold down the right trigger on your controller, tiggerbot will continously press the right trigger as fast as possible until right trigger input is released.)
+
+            }
+            else
+            {
+                //Triggerbot OFF code here
+
+            }
+        }
+
+        private void autopingenemiescheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (autopingenemiescheckbox.Checked)
+            {
+                //Auto Ping Enemies ON code here
+
+            }
+            else
+            {
+                //Auto Ping Enemies OFF code here
+
+            }
+        }
+
+        private void sledgediscordbutton_Click(object sender, EventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://discord.gg/PJYdXXnYKu",
+                UseShellExecute = true
+            });
+        }
+
+
+        //Sledge 'Sledge Settings'--------------------------------------------------
+        private void lowopacity_Click(object sender, EventArgs e)
+        {
+            this.Opacity = 0.25;
+        }
+
+        private void mediumopacity_Click(object sender, EventArgs e)
+        {
+            this.Opacity = 0.50;
+        }
+
+        private void higheropacity_Click(object sender, EventArgs e)
+        {
+            this.Opacity = 0.75;
+        }
+
+        private void fullopacity_Click(object sender, EventArgs e)
+        {
+            this.Opacity = 1.0;
+        }
+
+        private void playerboxcolordropdownbox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            modmenutab.Focus(); //Un-highlights the text
+        }
+
+        private void resetallsettingsbutton_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Settings Reset to Default!", "Sledge Alert!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void saveallsettingsbutton_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Settings Saved!", "Sledge Alert!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+
+        //Sledge 'Enemy Detection Settings'------------------------------------------------------------
+        private void showplayerboxbodycheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showplayerboxcheckbox.Checked)
+            {
+                //Show Player Box ON code here
+            }
+            else
+            {
+                //Show Player Box OFF code here
+
+            }
+        }
+
+
+        private void showvehiclescheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showvehiclescheckbox.Checked)
+            {
+                //Show Vehicles ON code here
+
+            }
+            else
+            {
+                //Show Vehicles OFF code here
+
+            }
+        }
+
+        private void showplayerlinecheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+
+            if (showplayerlinecheckbox.Checked)
+            {
+                //Show Player Line ON code here
+
+            }
+            else
+            {
+                //Show Player Line OFF code here
+
+            }
+        }
+
+        private void showvehiclelinecheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (showvehiclelinecheckbox.Checked)
+            {
+                //Show Vehicle Line ON code here
+
+            }
+            else
+            {
+                //Show Vehicle Line OFF code here
+
+            }
+        }
+    }
+}
