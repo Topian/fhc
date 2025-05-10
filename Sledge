@@ -8,13 +8,18 @@ using System.Diagnostics.Eventing.Reader;
 using System.Timers;
 using Timer = System.Windows.Forms.Timer;
 using System.Net.NetworkInformation;
-//using SharpDX.XInput; // Include SharpDX.XInput to handle controller input
+using SharpDX.XInput; // Include SharpDX.XInput to handle controller input
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Windows.Forms;
 using System.Diagnostics;
 using SledgeOverlay;
+using System.Text.Json;
+using Nefarius.ViGEm.Client;
+using Nefarius.ViGEm.Client.Targets;
+using Nefarius.ViGEm.Client.Targets.Xbox360;
+
 
 
 
@@ -24,6 +29,51 @@ namespace Sledge
 {
     public partial class Form1 : Form
     {
+
+        private DateTime lastJsonTime = DateTime.MinValue;
+        private TimeSpan maxStaleTime = TimeSpan.FromMilliseconds(1000); // 1 second max before reset
+
+        private void MoveMouse(float dx, float dy)
+        {
+            mouse_event(MOUSEEVENTF_MOVE, (uint)dx, (uint)dy, 0, UIntPtr.Zero);
+        }
+        private string currentTargetKey = null;
+
+        private Controller controller;
+        private State controllerState;
+
+
+        private ViGEmClient vigem;
+        private IXbox360Controller virtualController;
+
+
+        private bool isAimbotActive = false;
+        private System.Windows.Forms.Timer aimbotTimer;
+        private float aimbotSensitivity = 0.08f; // default speed
+        private enum AimControlMode
+        {
+            Controller,
+            Mouse
+        }
+
+        private AimControlMode aimControlMode = AimControlMode.Controller;
+        private enum AimbotTargetZone
+        {
+            Head,
+            Body,
+            ClosestToCrosshair
+        }
+
+        private AimbotTargetZone aimbotTargetZone = AimbotTargetZone.Body;
+
+        [DllImport("user32.dll")]
+        static extern short GetAsyncKeyState(int vKey);
+
+        const int VK_RBUTTON = 0x02; // Right mouse button
+
+
+        private System.Windows.Forms.Timer pythonHealthTimer;
+        private string detectionPath;
 
         Process pythonOverlayProcess;
         private OverlayForm overlay;
@@ -41,6 +91,7 @@ namespace Sledge
         private const int WM_KEYDOWN = 0x0100;
 
         //DLLs--------------------------------------------------------------------------------------------------------------
+
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
@@ -62,6 +113,11 @@ namespace Sledge
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
+        [DllImport("user32.dll")]
+        static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+        const uint MOUSEEVENTF_MOVE = 0x0001;
+
 
         public Form1()
         {
@@ -73,6 +129,10 @@ namespace Sledge
             EnableDrag(sledgelogo);
             EnableDrag(togglelabel1);
             EnableDrag(togglelabel2);
+
+            //Stuff for ESC toggle
+            _proc = HookCallback;
+            _hookID = SetHook(_proc);
         }
 
         private void EnableDrag(Control control)
@@ -91,6 +151,30 @@ namespace Sledge
 
         private void Form1_Load(object sender, EventArgs e)
         {
+
+            aimcontrolmodedropdown.SelectedIndex = 0; // Default to Controller
+            aimcontrolmodedropdown.SelectedIndexChanged += aimcontrolmodedropdown_SelectedIndexChanged;
+
+
+            controller = new Controller(UserIndex.One); // Use Player 1
+
+
+            aimbotonoffbutton.BackColor = Color.Red;
+            aimbotonoffbutton.Text = "Off";
+
+            aimbotTimer = new System.Windows.Forms.Timer();
+            aimbotTimer.Interval = 15; // adjust for smoother aim (lower = faster)
+            aimbotTimer.Tick += aimbotTimer_Tick;
+
+
+            //Check for crash---------------------------------------------------------------------------------
+            detectionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "detections.json");
+
+            pythonHealthTimer = new System.Windows.Forms.Timer();
+            pythonHealthTimer.Interval = 10000; // checks super fast
+            pythonHealthTimer.Tick += PythonHealthTimer_Tick;
+            pythonHealthTimer.Start();
+
 
             //Rainbow background flashing----------------------------------------
             rainbowTimer = new System.Windows.Forms.Timer();
@@ -113,8 +197,228 @@ namespace Sledge
             //Screen Detect Overlay--------------------
             overlay = new OverlayForm();
             overlay.Show();
+            string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
+            string pythonScript = Path.Combine(exeFolder, "sledge_object_detection.py");
+
+
+            pythonOverlayProcess = new Process();
+            pythonOverlayProcess.StartInfo.FileName = "python"; // Use just 'python' so it uses PATH
+            pythonOverlayProcess.StartInfo.Arguments = $"\"{pythonScript}\"";
+            pythonOverlayProcess.StartInfo.UseShellExecute = false;
+            pythonOverlayProcess.StartInfo.CreateNoWindow = true;
+            pythonOverlayProcess.Start();
+
+            //Controller Input/Output----------------------------
+            vigem = new ViGEmClient();
+            virtualController = vigem.CreateXbox360Controller();
+            virtualController.Connect();
+
 
         }
+
+        //Aimbot stuff---------------------------------------------------------------------------
+
+
+        private void aimbotTimer_Tick(object sender, EventArgs e)
+        {
+            if (!isAimbotActive) return;
+
+            // Check if aiming input is held based on selected mode
+            bool isAimingInputHeld = false;
+
+            if (aimControlMode == AimControlMode.Controller)
+            {
+                if (controller == null || !controller.IsConnected) return;
+                controllerState = controller.GetState();
+                isAimingInputHeld = controllerState.Gamepad.LeftTrigger > 150;
+            }
+            else if (aimControlMode == AimControlMode.Mouse)
+            {
+                isAimingInputHeld = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+            }
+
+            if (!isAimingInputHeld) return;
+
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "detections.json");
+            if (!File.Exists(path)) return;
+
+            try
+            {
+                string json = File.ReadAllText(path);
+                var detections = JsonSerializer.Deserialize<List<OverlayForm.Detection>>(json);
+                if (detections == null || detections.Count == 0) return;
+
+                var players = detections.Where(d => d.label.ToLower() == "person").ToList();
+                if (players.Count == 0)
+                {
+                    currentTargetKey = null;
+                    return;
+                }
+
+                int screenX = Screen.PrimaryScreen.Bounds.Width / 2;
+                int screenY = Screen.PrimaryScreen.Bounds.Height / 2;
+
+                string GenerateKey(OverlayForm.Detection d) => $"{d.cx},{d.cy}";
+
+                OverlayForm.Detection target = null;
+
+                if (currentTargetKey != null)
+                {
+                    target = players.FirstOrDefault(p => GenerateKey(p) == currentTargetKey);
+                }
+
+                if (target == null)
+                {
+                    target = players.OrderBy(p => p.distance).First();
+                    currentTargetKey = GenerateKey(target);
+                }
+
+
+                if (target != null)
+                {
+                    int aimX = (target.x1 + target.x2) / 2;
+                    int aimY = (target.y1 + target.y2) / 2; // Default: center of box
+
+                    if (aimbotTargetZone == AimbotTargetZone.Head)
+                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.2); // upper 20%
+                    else if (aimbotTargetZone == AimbotTargetZone.Body)
+                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.55); // slightly below center
+
+                    AimAt(aimX, aimY);
+                }
+            }
+            catch
+            {
+                // Silent fail — likely reading .json during write
+            }
+        }
+
+
+
+
+        private void SendRightStickInput(short x, short y)
+        {
+            if (virtualController != null)
+            {
+                virtualController.SetAxisValue(Xbox360Axis.RightThumbX, x);
+                virtualController.SetAxisValue(Xbox360Axis.RightThumbY, y);
+                virtualController.SubmitReport();
+            }
+        }
+
+
+
+        private void AimAt(int targetX, int targetY)
+        {
+            int screenX = Screen.PrimaryScreen.Bounds.Width / 2;
+            int screenY = Screen.PrimaryScreen.Bounds.Height / 2; // use center, not bottom!
+
+            int dx = targetX - screenX;
+            int dy = targetY - screenY;
+
+            short aimX = (short)Math.Clamp(dx * aimbotSensitivity, -32767, 32767);
+            short aimY = (short)Math.Clamp(dy * aimbotSensitivity, -32767, 32767);
+
+            if (aimControlMode == AimControlMode.Controller)
+            {
+                SendRightStickInput(aimX, aimY);
+            }
+            else if (aimControlMode == AimControlMode.Mouse)
+            {
+                MoveMouse(dx * aimbotSensitivity, dy * aimbotSensitivity);
+            }
+        }
+
+
+
+
+
+
+
+        //Right Shift Toggle----------------------------------------------------------------------------
+        private static IntPtr SetHook(LowLevelKeyboardProc proc)
+        {
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
+            }
+        }
+
+        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            {
+                int vkCode = Marshal.ReadInt32(lParam);
+                if ((Keys)vkCode == Keys.RShiftKey)
+                {
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        if (this.WindowState == FormWindowState.Minimized)
+                        {
+                            this.WindowState = FormWindowState.Normal;
+                            this.Show();
+                            this.Activate();
+                        }
+                        else
+                        {
+                            this.WindowState = FormWindowState.Minimized;
+                        }
+
+
+                    });
+                }
+            }
+            return CallNextHookEx(_hookID, nCode, wParam, lParam);
+
+            //Alt Aimbot toggle code
+
+
+
+        }
+
+        //Crash check------------------------------------------------------------------------------------------
+        private void PythonHealthTimer_Tick(object sender, EventArgs e)
+        {
+            string jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "detections.json");
+
+            // 1. Check if the file exists and when it was last written
+            if (!File.Exists(jsonPath)) return;
+
+            DateTime lastWrite = File.GetLastWriteTime(jsonPath);
+            double secondsSinceUpdate = (DateTime.Now - lastWrite).TotalSeconds;
+
+            // 2. If the file hasn't updated in 10+ seconds
+            if (secondsSinceUpdate > 10)
+            {
+                try
+                {
+                    // Always try to kill the old Python process (even if still 'alive')
+                    if (pythonOverlayProcess != null && !pythonOverlayProcess.HasExited)
+                    {
+                        pythonOverlayProcess.Kill();
+                        pythonOverlayProcess.WaitForExit();
+                    }
+
+                    // 3. Start a new one
+                    pythonOverlayProcess = new Process();
+                    pythonOverlayProcess.StartInfo.FileName = "python";
+                    pythonOverlayProcess.StartInfo.Arguments = $"\"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "yolov8n_overlay_auto_path_json.py")}\"";
+                    pythonOverlayProcess.StartInfo.UseShellExecute = false;
+                    pythonOverlayProcess.StartInfo.CreateNoWindow = true;
+                    pythonOverlayProcess.Start();
+
+                    // Optional: Log or show notification
+                    Console.WriteLine("⚠️ Python restarted at " + DateTime.Now);
+                }
+                catch (Exception ex)
+                {
+                    //  MessageBox.Show("Could not restart frozen Python script:\n" + ex.Message);
+                }
+            }
+
+        }
+
 
         //Rainbow Background--------------------------------------------------------------
         private void RainbowTimer_Tick(object sender, EventArgs e)
@@ -183,10 +487,17 @@ namespace Sledge
             {
                 aimbotonoffbutton.BackColor = Color.Red;
                 aimbotonoffbutton.Text = "Off";
+
                 //All Aimbot Off Code Here
+                isAimbotActive = false;
+                aimbotTimer.Stop(); // Stop the aimbot loop
             }
             else
             {
+                //All Aimbot ON Code Here
+                isAimbotActive = true;
+                aimbotTimer.Start(); // Start the aimbot loop
+
                 aimbotonoffbutton.Text = "On";
                 aimbotonoffbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = true;
@@ -199,6 +510,7 @@ namespace Sledge
             if (aimbotonoffbutton.BackColor == Color.Red)
             {
                 //All Aimbot Off Code Here
+                isAimbotActive = false;
                 legitaimbotbutton.BackColor = Color.White;
                 extremeaimbotbutton.BackColor = Color.White;
                 headonlyaimbotbutton.BackColor = Color.White;
@@ -211,17 +523,21 @@ namespace Sledge
             }
         }
 
+
         private void legitaimbotbutton_Click(object sender, EventArgs e)
         {
             if (this.legitaimbotbutton.BackColor == Color.Green)
             {
                 //Legit Aimbot OFF code here
+                aimbotSensitivity = 0.08f;
                 this.legitaimbotbutton.BackColor = Color.White;
                 extremeaimbotbutton.Enabled = true;
             }
             else
             {
                 //Legit Aimbot ON code here
+                // Legit aim mode
+                aimbotSensitivity = 0.04f;
                 this.legitaimbotbutton.BackColor = Color.Green;
                 extremeaimbotbutton.Enabled = false;
                 this.extremeaimbotbutton.BackColor = Color.White;
@@ -233,12 +549,15 @@ namespace Sledge
             if (this.extremeaimbotbutton.BackColor == Color.Green)
             {
                 //Extreme Aimbot OFF code here
+                aimbotSensitivity = 0.08f;
                 this.extremeaimbotbutton.BackColor = Color.White;
                 legitaimbotbutton.Enabled = true;
             }
             else
             {
                 //Extreme Aimbot ON code here
+                // Instant aim mode
+                aimbotSensitivity = 9999f;
                 this.extremeaimbotbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = false;
                 this.legitaimbotbutton.BackColor = Color.White;
@@ -259,6 +578,7 @@ namespace Sledge
             else
             {
                 //Head Only Aimbot ON code here
+                aimbotTargetZone = AimbotTargetZone.Head;
                 this.headonlyaimbotbutton.BackColor = Color.Green;
                 bodyonlyaimbotbutton.Enabled = false;
                 closesttocrosshairaimbotbutton.Enabled = false;
@@ -279,6 +599,7 @@ namespace Sledge
             else
             {
                 //Body Only Aimbot ON code here
+                aimbotTargetZone = AimbotTargetZone.Body;
                 this.bodyonlyaimbotbutton.BackColor = Color.Green;
                 headonlyaimbotbutton.Enabled = false;
                 this.headonlyaimbotbutton.BackColor = Color.White;
@@ -299,6 +620,7 @@ namespace Sledge
             else
             {
                 //Closest to Crosshair Aimbot ON code here
+                aimbotTargetZone = AimbotTargetZone.ClosestToCrosshair;
                 this.closesttocrosshairaimbotbutton.BackColor = Color.Green;
                 headonlyaimbotbutton.Enabled = false;
                 this.headonlyaimbotbutton.BackColor = Color.White;
@@ -311,15 +633,9 @@ namespace Sledge
         //Sledge 'Extras'------------------------------------------------------------------
         private void showcrosshaircheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            if (showcrosshaircheckbox.Checked)
+            if (overlay != null)
             {
-                //Crosshair ON code here
-
-            }
-            else
-            {
-                //Crosshair OFF code here
-
+                overlay.ShowCrosshair = showcrosshaircheckbox.Checked;
             }
         }
 
@@ -417,7 +733,39 @@ namespace Sledge
 
         private void playerboxcolordropdownbox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            modmenutab.Focus(); //Un-highlights the text
+            modmenutab.Focus();
+            if (overlay == null) return;
+
+            string selected = playerboxcolordropdownbox.SelectedItem?.ToString();
+
+            if (selected == "Flashing Rainbow")
+            {
+                overlay.RainbowPlayerBox = true;
+            }
+            else
+            {
+                overlay.RainbowPlayerBox = false;
+                switch (selected)
+                {
+                    case "Red":
+                        overlay.PlayerBoxColor = Color.Red;
+                        break;
+                    case "Yellow":
+                        overlay.PlayerBoxColor = Color.Yellow;
+                        break;
+                    case "Blue":
+                        overlay.PlayerBoxColor = Color.Blue;
+                        break;
+                    case "Purple":
+                        overlay.PlayerBoxColor = Color.Purple;
+                        break;
+                    default:
+                        overlay.PlayerBoxColor = Color.Red;
+                        break;
+                }
+            }
+
+            overlay.Invalidate(); // force redraw
         }
 
         private void resetallsettingsbutton_Click(object sender, EventArgs e)
@@ -434,59 +782,115 @@ namespace Sledge
         //Sledge 'Enemy Detection Settings'------------------------------------------------------------
         private void showplayerboxbodycheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            if (showplayerboxcheckbox.Checked)
-            {
-                //Show Player Box ON code here
-            }
-            else
-            {
-                //Show Player Box OFF code here
-
-            }
+            if (overlay != null)
+                overlay.ShowPlayers = showplayerboxcheckbox.Checked;
         }
 
 
         private void showvehiclescheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            if (showvehiclescheckbox.Checked)
-            {
-                //Show Vehicles ON code here
-
-            }
-            else
-            {
-                //Show Vehicles OFF code here
-
-            }
+            if (overlay != null)
+                overlay.ShowVehicles = showvehiclescheckbox.Checked;
         }
 
         private void showplayerlinecheckbox_CheckedChanged(object sender, EventArgs e)
         {
-
-            if (showplayerlinecheckbox.Checked)
-            {
-                //Show Player Line ON code here
-
-            }
-            else
-            {
-                //Show Player Line OFF code here
-
-            }
+            if (overlay != null)
+                overlay.ShowPlayerLines = showplayerlinecheckbox.Checked;
         }
 
         private void showvehiclelinecheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            if (showvehiclelinecheckbox.Checked)
-            {
-                //Show Vehicle Line ON code here
+            if (overlay != null)
+                overlay.ShowVehicleLines = showvehiclelinecheckbox.Checked;
+        }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            UnhookWindowsHookEx(_hookID);
+            base.OnFormClosing(e);
+
+            try
+            {
+                if (pythonOverlayProcess != null && !pythonOverlayProcess.HasExited)
+                {
+                    pythonOverlayProcess.Kill();
+                    pythonOverlayProcess.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not close Python process: " + ex.Message);
+            }
+        }
+
+        private void showfovcheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (overlay != null)
+            {
+                overlay.ShowFov = showfovcheckbox.Checked;
+            }
+
+        }
+
+        private void fovradiusslider_Scroll(object sender, EventArgs e)
+        {
+            if (overlay != null)
+            {
+                overlay.FovRadius = fovradiusslider.Value;
+            }
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            modmenutab.Focus();
+            if (overlay == null) return;
+
+            string selected = fovcolorcombobox.SelectedItem?.ToString();
+
+            if (selected == "Flashing Rainbow")
+            {
+                overlay.RainbowFov = true;
             }
             else
             {
-                //Show Vehicle Line OFF code here
-
+                overlay.RainbowFov = false;
+                switch (selected)
+                {
+                    case "Red":
+                        overlay.FovColor = Color.Red;
+                        break;
+                    case "Yellow":
+                        overlay.FovColor = Color.Yellow;
+                        break;
+                    case "Green":
+                        overlay.FovColor = Color.Green;
+                        break;
+                    case "Cyan":
+                        overlay.FovColor = Color.Cyan;
+                        break;
+                    case "Magenta":
+                        overlay.FovColor = Color.Magenta;
+                        break;
+                    default:
+                        overlay.FovColor = Color.White;
+                        break;
+                }
             }
+
+            overlay.Invalidate(); // force redraw.Invalidate(); // 🔄 force update
+        }
+
+        private void showvehiclescheckbox_CheckedChanged_1(object sender, EventArgs e)
+        {
+            if (overlay != null)
+                overlay.ShowVehicles = showvehiclescheckbox.Checked;
+        }
+
+        private void aimcontrolmodedropdown_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selected = aimcontrolmodedropdown.SelectedItem.ToString();
+            aimControlMode = selected == "Mouse" ? AimControlMode.Mouse : AimControlMode.Controller;
         }
     }
 }
