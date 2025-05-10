@@ -20,14 +20,6 @@ using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
 using Nefarius.ViGEm.Client.Targets.Xbox360;
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-
 
 
 
@@ -40,12 +32,6 @@ namespace Sledge
 
         private DateTime lastJsonTime = DateTime.MinValue;
         private TimeSpan maxStaleTime = TimeSpan.FromMilliseconds(1000); // 1 second max before reset
-
-        private CheckBox aimbotCheckbox;
-        private RadioButton controllerAimRadioButton;
-
-        [DllImport("user32.dll")]
-        private static extern void mouse_event(MouseEventFlags flags, int dx, int dy, uint data, UIntPtr extraInfo);
 
         private void MoveMouse(float dx, float dy)
         {
@@ -149,27 +135,6 @@ namespace Sledge
             _hookID = SetHook(_proc);
         }
 
-public class PlayerData
-{
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public float Distance { get; set; }
-    public bool Visible { get; set; }
-}
-
-public enum MouseEventFlags : uint
-{
-    MOVE = 0x0001
-}
-
-// Simulated controller state (you'll need to hook this into actual controller input logic)
-public struct ControllerState
-{
-    public byte LeftTrigger;
-}
-
         private void EnableDrag(Control control)
         {
             control.MouseDown += (s, e) =>
@@ -254,51 +219,79 @@ public struct ControllerState
         //Aimbot stuff---------------------------------------------------------------------------
 
 
-
-
         private void aimbotTimer_Tick(object sender, EventArgs e)
         {
-            if (!aimbotCheckbox.Checked) return;
+            if (!isAimbotActive) return;
 
-            // Get real controller input
-            Controller controller = new Controller(UserIndex.One);
-            if (!controller.IsConnected) return;
+            // Check if aiming input is held based on selected mode
+            bool isAimingInputHeld = false;
 
-            State controllerState = controller.GetState();
-            byte leftTrigger = controllerState.Gamepad.LeftTrigger;
+            if (aimControlMode == AimControlMode.Controller)
+            {
+                if (controller == null || !controller.IsConnected) return;
+                controllerState = controller.GetState();
+                isAimingInputHeld = controllerState.Gamepad.LeftTrigger > 150;
+            }
+            else if (aimControlMode == AimControlMode.Mouse)
+            {
+                isAimingInputHeld = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+            }
 
-            bool useController = controllerAimRadioButton.Checked;
-            bool isAiming =
-                (useController && leftTrigger == 255) ||
-                (!useController && Control.MouseButtons.HasFlag(MouseButtons.Right));
+            if (!isAimingInputHeld) return;
 
-            if (!isAiming) return;
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "detections.json");
+            if (!File.Exists(path)) return;
 
-            string jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "players.json");
-            if (!File.Exists(jsonPath)) return;
+            try
+            {
+                string json = File.ReadAllText(path);
+                var detections = JsonSerializer.Deserialize<List<OverlayForm.Detection>>(json);
+                if (detections == null || detections.Count == 0) return;
 
-            string json = File.ReadAllText(jsonPath);
-            List<PlayerData> players = JsonConvert.DeserializeObject<List<PlayerData>>(json);
+                var players = detections.Where(d => d.label.ToLower() == "person").ToList();
+                if (players.Count == 0)
+                {
+                    currentTargetKey = null;
+                    return;
+                }
 
-            if (players == null || players.Count == 0) return;
+                int screenX = Screen.PrimaryScreen.Bounds.Width / 2;
+                int screenY = Screen.PrimaryScreen.Bounds.Height / 2;
 
-            players = players.OrderBy(p => p.Distance).ToList();
+                string GenerateKey(OverlayForm.Detection d) => $"{d.cx},{d.cy}";
 
-            PlayerData target = players.FirstOrDefault(p => p.Visible);
-            if (target == null) return;
+                OverlayForm.Detection target = null;
 
-            int centerX = Screen.PrimaryScreen.Bounds.Width / 2;
-            int centerY = Screen.PrimaryScreen.Bounds.Height / 2;
+                if (currentTargetKey != null)
+                {
+                    target = players.FirstOrDefault(p => GenerateKey(p) == currentTargetKey);
+                }
 
-            int targetX = target.X + target.Width / 2;
-            int targetY = target.Y + target.Height / 2;
+                if (target == null)
+                {
+                    target = players.OrderBy(p => p.distance).First();
+                    currentTargetKey = GenerateKey(target);
+                }
 
-            int deltaX = targetX - centerX;
-            int deltaY = targetY - centerY;
 
-            mouse_event(MouseEventFlags.MOVE, deltaX, deltaY, 0, UIntPtr.Zero);
+                if (target != null)
+                {
+                    int aimX = (target.x1 + target.x2) / 2;
+                    int aimY = (target.y1 + target.y2) / 2; // Default: center of box
+
+                    if (aimbotTargetZone == AimbotTargetZone.Head)
+                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.2); // upper 20%
+                    else if (aimbotTargetZone == AimbotTargetZone.Body)
+                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.55); // slightly below center
+
+                    AimAt(aimX, aimY);
+                }
+            }
+            catch
+            {
+                // Silent fail — likely reading .json during write
+            }
         }
-
 
 
 
