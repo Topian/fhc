@@ -29,7 +29,9 @@ namespace Sledge
 {
     public partial class Form1 : Form
     {
-
+        private System.Windows.Forms.Timer settingsSaveTimer;
+        private System.Windows.Forms.Timer vigemKeepAliveTimer;
+        private string settingsFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
         private DateTime lastJsonTime = DateTime.MinValue;
         private TimeSpan maxStaleTime = TimeSpan.FromMilliseconds(1000); // 1 second max before reset
 
@@ -115,7 +117,7 @@ namespace Sledge
 
         [DllImport("user32.dll")]
         static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
-
+        private System.Windows.Forms.Timer controllerFeaturesTimer;
         const uint MOUSEEVENTF_MOVE = 0x0001;
 
 
@@ -151,6 +153,10 @@ namespace Sledge
 
         private void Form1_Load(object sender, EventArgs e)
         {
+
+            InitializeControllerFeatures();
+
+
 
             aimcontrolmodedropdown.SelectedIndex = 0; // Default to Controller
             aimcontrolmodedropdown.SelectedIndexChanged += aimcontrolmodedropdown_SelectedIndexChanged;
@@ -212,9 +218,84 @@ namespace Sledge
             vigem = new ViGEmClient();
             virtualController = vigem.CreateXbox360Controller();
             virtualController.Connect();
+            virtualController.SubmitReport();
+
 
 
         }
+        private void InitializeControllerFeatures()
+        {
+            controllerFeaturesTimer = new System.Windows.Forms.Timer();
+            controllerFeaturesTimer.Interval = 15;
+            controllerFeaturesTimer.Tick += controllerFeaturesTimer_Tick;
+            controllerFeaturesTimer.Start();
+        }
+
+        private void controllerFeaturesTimer_Tick(object sender, EventArgs e)
+        {
+            bool leftTriggerHeld = false;
+
+            if (aimControlMode == AimControlMode.Controller)
+            {
+                if (controller == null || !controller.IsConnected) return;
+                controllerState = controller.GetState();
+                leftTriggerHeld = controllerState.Gamepad.LeftTrigger > 150;
+            }
+
+            bool rightMouseHeld = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+
+            bool isAiming =
+                (aimControlMode == AimControlMode.Controller && leftTriggerHeld) ||
+                (aimControlMode == AimControlMode.Mouse && rightMouseHeld);
+
+            if (!isAiming) return;
+
+            // ✅ Triggerbot using RT slider
+            if (triggerbotcheckbox.Checked)
+            {
+                virtualController.SetSliderValue(Xbox360Slider.RightTrigger, 255);
+                virtualController.SubmitReport();
+                Task.Delay(10).Wait();
+                virtualController.SetSliderValue(Xbox360Slider.RightTrigger, 0);
+                virtualController.SubmitReport();
+            }
+
+            // ✅ Auto-Ping Enemies (D-Pad Up spam while aiming)
+            if (autopingenemiescheckbox.Checked)
+            {
+                virtualController.SetButtonState(Xbox360Button.Up, true);
+                virtualController.SubmitReport();
+                Task.Delay(10).Wait();
+                virtualController.SetButtonState(Xbox360Button.Up, false);
+                virtualController.SubmitReport();
+            }
+
+            // ✅ Auto-Dropshot (crouch for 2s while aiming)
+            if (autodropshotcheckbox.Checked)
+            {
+                virtualController.SetButtonState(Xbox360Button.RightThumb, true);
+                virtualController.SubmitReport();
+                Task.Delay(2000).Wait();
+                virtualController.SetButtonState(Xbox360Button.RightThumb, false);
+                virtualController.SubmitReport();
+            }
+
+            // ✅ Auto-Jumpshot (jump while aiming)
+            if (autojumpshotcheckbox.Checked)
+            {
+                virtualController.SetButtonState(Xbox360Button.A, true);
+                virtualController.SubmitReport();
+                Task.Delay(10).Wait();
+                virtualController.SetButtonState(Xbox360Button.A, false);
+                virtualController.SubmitReport();
+            }
+        }
+
+
+
+
+        
+
 
         //Aimbot stuff---------------------------------------------------------------------------
 
@@ -280,7 +361,7 @@ namespace Sledge
                     int aimY = (target.y1 + target.y2) / 2; // Default: center of box
 
                     if (aimbotTargetZone == AimbotTargetZone.Head)
-                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.2); // upper 20%
+                        aimY = target.y1 + (int)((target.y2 - target.y1) * 0.05); // very close to top
                     else if (aimbotTargetZone == AimbotTargetZone.Body)
                         aimY = target.y1 + (int)((target.y2 - target.y1) * 0.55); // slightly below center
 
@@ -460,17 +541,30 @@ namespace Sledge
 
 
         //Sledge Top Menu Bar----------------------------------------------------------------------------------------------------
-        private void button7_Click(object sender, EventArgs e)
+        private void exitsledge_Click_2(object sender, EventArgs e)
         {
+            try
+            {
+                foreach (var process in Process.GetProcessesByName("python"))
+                {
+                    process.Kill();
+                }
+
+                //MessageBox.Show("✅ All Python processes have been terminated.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+               // MessageBox.Show("⚠️ Error killing Python processes:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             Application.Exit();
         }
 
-        private void button8_Click(object sender, EventArgs e)
+        private void restartsledge_Click(object sender, EventArgs e)
         {
             Application.Restart();
         }
 
-        private void button9_Click(object sender, EventArgs e)
+        private void sledgehelpbutton_Click(object sender, EventArgs e)
         {
             MessageBox.Show("*If you bought Sledge, your username is your Discord username! (not display name)*\r\n*Updated Usernames and Passwords take at least 3 minutes to update in the system!*\r\n*If there is an update, please delete this version and install the new one!*\r\n*You CANNOT use Sledge WITHOUT a Network Connection!*");
         }
@@ -557,7 +651,7 @@ namespace Sledge
             {
                 //Extreme Aimbot ON code here
                 // Instant aim mode
-                aimbotSensitivity = 9999f;
+                aimbotSensitivity = 5.00f;
                 this.extremeaimbotbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = false;
                 this.legitaimbotbutton.BackColor = Color.White;
