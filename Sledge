@@ -30,26 +30,7 @@ using Newtonsoft.Json;
 
 
 
-public class PlayerData
-{
-    public int X { get; set; }
-    public int Y { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public float Distance { get; set; }
-    public bool Visible { get; set; }
-}
 
-public enum MouseEventFlags : uint
-{
-    MOVE = 0x0001
-}
-
-// Simulated controller state (you'll need to hook this into actual controller input logic)
-public struct ControllerState
-{
-    public byte LeftTrigger;
-}
 
 
 namespace Sledge
@@ -167,6 +148,27 @@ namespace Sledge
             _proc = HookCallback;
             _hookID = SetHook(_proc);
         }
+
+public class PlayerData
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public float Distance { get; set; }
+    public bool Visible { get; set; }
+}
+
+public enum MouseEventFlags : uint
+{
+    MOVE = 0x0001
+}
+
+// Simulated controller state (you'll need to hook this into actual controller input logic)
+public struct ControllerState
+{
+    public byte LeftTrigger;
+}
 
         private void EnableDrag(Control control)
         {
