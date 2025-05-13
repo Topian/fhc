@@ -35,10 +35,7 @@ namespace Sledge
         private DateTime lastJsonTime = DateTime.MinValue;
         private TimeSpan maxStaleTime = TimeSpan.FromMilliseconds(1000); // 1 second max before reset
 
-        private void MoveMouse(float dx, float dy)
-        {
-            mouse_event(MOUSEEVENTF_MOVE, (uint)dx, (uint)dy, 0, UIntPtr.Zero);
-        }
+
         private string currentTargetKey = null;
 
         private Controller controller;
@@ -50,6 +47,7 @@ namespace Sledge
 
 
         private bool isAimbotActive = false;
+
         private System.Windows.Forms.Timer aimbotTimer;
         private float aimbotSensitivity = 0.08f; // default speed
         private enum AimControlMode
@@ -93,6 +91,9 @@ namespace Sledge
         private const int WM_KEYDOWN = 0x0100;
 
         //DLLs--------------------------------------------------------------------------------------------------------------
+        // At the top of Form1.cs, near your other DllImports:
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
@@ -120,6 +121,9 @@ namespace Sledge
         private System.Windows.Forms.Timer controllerFeaturesTimer;
         const uint MOUSEEVENTF_MOVE = 0x0001;
 
+        private System.Windows.Forms.Timer vigemOutputTestTimer;
+        private Controller vigemController;
+
 
         public Form1()
         {
@@ -131,6 +135,8 @@ namespace Sledge
             EnableDrag(sledgelogo);
             EnableDrag(togglelabel1);
             EnableDrag(togglelabel2);
+            EnableDrag(label12);
+            EnableDrag(label13);
 
             //Stuff for ESC toggle
             _proc = HookCallback;
@@ -153,17 +159,61 @@ namespace Sledge
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            // ✅ Initialize ViGEm before using it
+            vigem = new ViGEmClient();
+            virtualController = vigem.CreateXbox360Controller();
+            virtualController.Connect();
+            virtualController.SubmitReport();
+
+            Task.Run(async () =>
+            {
+                await Task.Delay(3000); // Give the system 3 seconds
+                virtualController.SetButtonState(Xbox360Button.A, true);
+                virtualController.SubmitReport();
+                await Task.Delay(500); // Hold for half a second
+                virtualController.SetButtonState(Xbox360Button.A, false);
+                virtualController.SubmitReport();
+                Console.WriteLine("✅ ViGEm test A button press sent");
+            });
+
+
+            var controllerInitTimer = new System.Windows.Forms.Timer();
+            controllerInitTimer.Interval = 1000;
+            controllerInitTimer.Tick += (s, ev) =>
+            {
+                controllerInitTimer.Stop();
+
+                controller = GetRealController(); // ✅ This is the key fix
+
+                if (controller != null && controller.IsConnected)
+                {
+                    controllerIndexLabel.Text = $"Using: {controller.UserIndex}";
+                    ltStatusLabel.Text = $"LT: {controller.GetState().Gamepad.LeftTrigger}";
+                    Console.WriteLine($"✅ Controller connected on index {controller.UserIndex}");
+                }
+                else
+                {
+                    controllerIndexLabel.Text = "Controller not found";
+                    ltStatusLabel.Text = "Controller not connected";
+                    Console.WriteLine("❌ No real controller found or not connected.");
+                }
+            };
+            controllerInitTimer.Start();
+
+            // Monitor ViGEm controller (index 1) for test
+            vigemController = new Controller(UserIndex.One);
+
+            vigemOutputTestTimer = new System.Windows.Forms.Timer();
+            vigemOutputTestTimer.Interval = 100; // Poll every 100 ms
+            vigemOutputTestTimer.Tick += VigemOutputTestTimer_Tick;
+            vigemOutputTestTimer.Start();
+
 
             InitializeControllerFeatures();
 
-
-
             aimcontrolmodedropdown.SelectedIndex = 0; // Default to Controller
             aimcontrolmodedropdown.SelectedIndexChanged += aimcontrolmodedropdown_SelectedIndexChanged;
-
-
-            controller = new Controller(UserIndex.One); // Use Player 1
-
+            aimControlMode = AimControlMode.Controller;
 
             aimbotonoffbutton.BackColor = Color.Red;
             aimbotonoffbutton.Text = "Off";
@@ -172,8 +222,7 @@ namespace Sledge
             aimbotTimer.Interval = 15; // adjust for smoother aim (lower = faster)
             aimbotTimer.Tick += aimbotTimer_Tick;
 
-
-            //Check for crash---------------------------------------------------------------------------------
+            //Check for crash
             detectionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "detections.json");
 
             pythonHealthTimer = new System.Windows.Forms.Timer();
@@ -181,14 +230,13 @@ namespace Sledge
             pythonHealthTimer.Tick += PythonHealthTimer_Tick;
             pythonHealthTimer.Start();
 
-
-            //Rainbow background flashing----------------------------------------
+            //Rainbow background flashing
             rainbowTimer = new System.Windows.Forms.Timer();
             rainbowTimer.Interval = 50; // Speed of color change (lower = faster)
             rainbowTimer.Tick += RainbowTimer_Tick;
             rainbowTimer.Start();
 
-            //Disable aimbot default-----------------
+            //Disable aimbot default
             legitaimbotbutton.Enabled = false;
             extremeaimbotbutton.Enabled = false;
             headonlyaimbotbutton.Enabled = false;
@@ -200,12 +248,11 @@ namespace Sledge
             timer1.Tick += timer1_Tick;
             timer1.Start();
 
-            //Screen Detect Overlay--------------------
+            //Screen Detect Overlay
             overlay = new OverlayForm();
             overlay.Show();
             string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
             string pythonScript = Path.Combine(exeFolder, "sledge_object_detection.py");
-
 
             pythonOverlayProcess = new Process();
             pythonOverlayProcess.StartInfo.FileName = "python"; // Use just 'python' so it uses PATH
@@ -213,16 +260,163 @@ namespace Sledge
             pythonOverlayProcess.StartInfo.UseShellExecute = false;
             pythonOverlayProcess.StartInfo.CreateNoWindow = true;
             pythonOverlayProcess.Start();
-
-            //Controller Input/Output----------------------------
-            vigem = new ViGEmClient();
-            virtualController = vigem.CreateXbox360Controller();
-            virtualController.Connect();
-            virtualController.SubmitReport();
-
-
-
         }
+
+
+        private Controller GetRealController()
+        {
+            Controller[] controllers = new Controller[]
+            {
+        new Controller(UserIndex.One),
+        new Controller(UserIndex.Two),
+        new Controller(UserIndex.Three),
+        new Controller(UserIndex.Four)
+            };
+
+            foreach (var ctrl in controllers)
+            {
+                try
+                {
+                    if (!ctrl.IsConnected)
+                        continue;
+
+                    // Poll for LT input
+                    var state = ctrl.GetState();
+
+                    // ✅ If we can read LT or anything from it, it's real
+                    if (state.Gamepad.LeftTrigger >= 0 || state.Gamepad.RightTrigger >= 0)
+                    {
+                        Console.WriteLine($"🎮 Detected input-ready controller on index {ctrl.UserIndex}");
+                        return ctrl;
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            Console.WriteLine("❌ No usable real controller found.");
+            return null;
+        }
+
+
+
+
+
+
+
+
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct INPUT
+        {
+            public uint type;
+            public MOUSEINPUT mi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        const uint INPUT_MOUSE = 0;
+
+        // Replace your MoveMouse method with this:
+        private void MoveMouse(float dx, float dy)
+        {
+            INPUT[] inputs = new INPUT[]
+            {
+        new INPUT
+        {
+            type = INPUT_MOUSE,
+            mi = new MOUSEINPUT
+            {
+                dx = (int)dx,
+                dy = (int)dy,
+                mouseData = 0,
+                dwFlags = MOUSEEVENTF_MOVE,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero
+            }
+        }
+            };
+
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
+
+        private void VigemOutputTestTimer_Tick(object sender, EventArgs e)
+        {
+            if (vigemController == null || !vigemController.IsConnected)
+            {
+                vigemOutputLabel.Text = "ViGEm Output: Not connected";
+                return;
+            }
+
+            try
+            {
+                var state = vigemController.GetState();
+                var buttons = state.Gamepad.Buttons;
+                var lt = state.Gamepad.LeftTrigger;
+                var rt = state.Gamepad.RightTrigger;
+
+                string info = $"Buttons: {buttons}, LT: {lt}, RT: {rt}";
+                vigemOutputLabel.Text = $"ViGEm Output: {info}";
+            }
+            catch (Exception ex)
+            {
+                vigemOutputLabel.Text = $"ViGEm Output: ERROR - {ex.Message}";
+            }
+        }
+
+
+        private Controller GetViGEmController()
+        {
+            Controller[] controllers = new Controller[]
+            {
+        new Controller(UserIndex.One),
+        new Controller(UserIndex.Two),
+        new Controller(UserIndex.Three),
+        new Controller(UserIndex.Four)
+            };
+
+            foreach (var ctrl in controllers)
+            {
+                try
+                {
+                    if (!ctrl.IsConnected)
+                    {
+                        Console.WriteLine($"[Check] {ctrl.UserIndex} not connected.");
+                        continue;
+                    }
+
+                    var battery = ctrl.GetBatteryInformation(BatteryDeviceType.Gamepad);
+                    Console.WriteLine($"[Check] {ctrl.UserIndex} connected. BatteryType: {battery.BatteryType}");
+
+                    if (battery.BatteryType == BatteryType.Wired)
+                    {
+                        Console.WriteLine($"✅ ViGEm likely on {ctrl.UserIndex}");
+                        return ctrl;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Error checking {ctrl.UserIndex}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine("❌ No ViGEm controller found.");
+            return null;
+        }
+
+
+
         private void InitializeControllerFeatures()
         {
             controllerFeaturesTimer = new System.Windows.Forms.Timer();
@@ -231,28 +425,62 @@ namespace Sledge
             controllerFeaturesTimer.Start();
         }
 
+
+      //  private bool ltMessageShown = false;
+
         private void controllerFeaturesTimer_Tick(object sender, EventArgs e)
         {
-            bool leftTriggerHeld = false;
+            // Always use controller index TWO (your real controller)
+            Controller real = new Controller(UserIndex.Two);
 
-            if (aimControlMode == AimControlMode.Controller)
+            if (!real.IsConnected)
             {
-                if (controller == null || !controller.IsConnected) return;
-                controllerState = controller.GetState();
-                leftTriggerHeld = controllerState.Gamepad.LeftTrigger > 150;
+                ltStatusLabel.Text = "Real Controller not connected";
+                controllerIndexLabel.Text = "Input: None";
+                return;
             }
 
-            bool rightMouseHeld = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+            // Read real controller state
+            State state = real.GetState();
+            Gamepad gamepad = state.Gamepad;
 
-            bool isAiming =
-                (aimControlMode == AimControlMode.Controller && leftTriggerHeld) ||
-                (aimControlMode == AimControlMode.Mouse && rightMouseHeld);
+            ltStatusLabel.Text = $"LT: {gamepad.LeftTrigger}";
+            controllerIndexLabel.Text = $"Input: Real (UserIndex.Two)";
 
-            if (!isAiming) return;
+            // ✅ Mirror everything to ViGEm virtual controller
+            virtualController.SetButtonState(Xbox360Button.A, (gamepad.Buttons & GamepadButtonFlags.A) != 0);
+            virtualController.SetButtonState(Xbox360Button.B, (gamepad.Buttons & GamepadButtonFlags.B) != 0);
+            virtualController.SetButtonState(Xbox360Button.X, (gamepad.Buttons & GamepadButtonFlags.X) != 0);
+            virtualController.SetButtonState(Xbox360Button.Y, (gamepad.Buttons & GamepadButtonFlags.Y) != 0);
+            virtualController.SetButtonState(Xbox360Button.Start, (gamepad.Buttons & GamepadButtonFlags.Start) != 0);
+            virtualController.SetButtonState(Xbox360Button.Back, (gamepad.Buttons & GamepadButtonFlags.Back) != 0);
+            virtualController.SetButtonState(Xbox360Button.LeftShoulder, (gamepad.Buttons & GamepadButtonFlags.LeftShoulder) != 0);
+            virtualController.SetButtonState(Xbox360Button.RightShoulder, (gamepad.Buttons & GamepadButtonFlags.RightShoulder) != 0);
+            virtualController.SetButtonState(Xbox360Button.LeftThumb, (gamepad.Buttons & GamepadButtonFlags.LeftThumb) != 0);
+            virtualController.SetButtonState(Xbox360Button.RightThumb, (gamepad.Buttons & GamepadButtonFlags.RightThumb) != 0);
+
+            virtualController.SetButtonState(Xbox360Button.Up, (gamepad.Buttons & GamepadButtonFlags.DPadUp) != 0);
+            virtualController.SetButtonState(Xbox360Button.Down, (gamepad.Buttons & GamepadButtonFlags.DPadDown) != 0);
+            virtualController.SetButtonState(Xbox360Button.Left, (gamepad.Buttons & GamepadButtonFlags.DPadLeft) != 0);
+            virtualController.SetButtonState(Xbox360Button.Right, (gamepad.Buttons & GamepadButtonFlags.DPadRight) != 0);
+
+            virtualController.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
+            virtualController.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
+            virtualController.SetAxisValue(Xbox360Axis.RightThumbX, gamepad.RightThumbX);
+            virtualController.SetAxisValue(Xbox360Axis.RightThumbY, gamepad.RightThumbY);
+
+            virtualController.SetSliderValue(Xbox360Slider.LeftTrigger, gamepad.LeftTrigger);
+            virtualController.SetSliderValue(Xbox360Slider.RightTrigger, gamepad.RightTrigger);
+
+            virtualController.SubmitReport();
+
+
+            bool leftTriggerHeld = gamepad.LeftTrigger > 150;
 
             // ✅ Triggerbot using RT slider
-            if (triggerbotcheckbox.Checked)
+            if ((leftTriggerHeld) && triggerbotcheckbox.Checked)
             {
+
                 virtualController.SetSliderValue(Xbox360Slider.RightTrigger, 255);
                 virtualController.SubmitReport();
                 Task.Delay(10).Wait();
@@ -261,7 +489,7 @@ namespace Sledge
             }
 
             // ✅ Auto-Ping Enemies (D-Pad Up spam while aiming)
-            if (autopingenemiescheckbox.Checked)
+            if ((leftTriggerHeld) && autopingenemiescheckbox.Checked)
             {
                 virtualController.SetButtonState(Xbox360Button.Up, true);
                 virtualController.SubmitReport();
@@ -271,7 +499,7 @@ namespace Sledge
             }
 
             // ✅ Auto-Dropshot (crouch for 2s while aiming)
-            if (autodropshotcheckbox.Checked)
+            if ((leftTriggerHeld) && autodropshotcheckbox.Checked)
             {
                 virtualController.SetButtonState(Xbox360Button.RightThumb, true);
                 virtualController.SubmitReport();
@@ -281,7 +509,7 @@ namespace Sledge
             }
 
             // ✅ Auto-Jumpshot (jump while aiming)
-            if (autojumpshotcheckbox.Checked)
+            if ((leftTriggerHeld) && autojumpshotcheckbox.Checked)
             {
                 virtualController.SetButtonState(Xbox360Button.A, true);
                 virtualController.SubmitReport();
@@ -289,12 +517,22 @@ namespace Sledge
                 virtualController.SetButtonState(Xbox360Button.A, false);
                 virtualController.SubmitReport();
             }
+
         }
-
-
-
-
         
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         //Aimbot stuff---------------------------------------------------------------------------
@@ -554,7 +792,7 @@ namespace Sledge
             }
             catch (Exception ex)
             {
-               // MessageBox.Show("⚠️ Error killing Python processes:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // MessageBox.Show("⚠️ Error killing Python processes:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             Application.Exit();
         }
@@ -643,7 +881,7 @@ namespace Sledge
             if (this.extremeaimbotbutton.BackColor == Color.Green)
             {
                 //Extreme Aimbot OFF code here
-                aimbotSensitivity = 0.08f;
+                aimbotSensitivity = 0.40f;
                 this.extremeaimbotbutton.BackColor = Color.White;
                 legitaimbotbutton.Enabled = true;
             }
@@ -651,7 +889,7 @@ namespace Sledge
             {
                 //Extreme Aimbot ON code here
                 // Instant aim mode
-                aimbotSensitivity = 5.00f;
+                aimbotSensitivity = 2.00f;
                 this.extremeaimbotbutton.BackColor = Color.Green;
                 legitaimbotbutton.Enabled = false;
                 this.legitaimbotbutton.BackColor = Color.White;
@@ -983,8 +1221,31 @@ namespace Sledge
 
         private void aimcontrolmodedropdown_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string selected = aimcontrolmodedropdown.SelectedItem.ToString();
-            aimControlMode = selected == "Mouse" ? AimControlMode.Mouse : AimControlMode.Controller;
+            string selected = aimcontrolmodedropdown.SelectedItem?.ToString()?.Trim();
+
+            if (selected == "Mouse")
+            {
+                aimControlMode = AimControlMode.Mouse;
+                Console.WriteLine("[AIM MODE] Mouse selected");
+            }
+            else if (selected == "Controller")
+            {
+                aimControlMode = AimControlMode.Controller;
+                Console.WriteLine("[AIM MODE] Controller selected");
+            }
+            else
+            {
+                Console.WriteLine("[AIM MODE] Unknown mode selected: " + selected);
+            }
+
+            // ✅ Optional: Update a label on the form if you want real-time feedback
+            // aimModeLabel.Text = $"AIM MODE: {aimControlMode}";
+        }
+
+        private void controllerIndexLabel_Click(object sender, EventArgs e)
+        {
+
+
         }
     }
 }
